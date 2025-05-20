@@ -10,6 +10,11 @@
     </parent>
 
     <artifactId>rpc-framework</artifactId>
+    <packaging>pom</packaging>
+    <modules>
+        <module>rpc-common</module>
+        <module>rpc-core</module>
+    </modules>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
