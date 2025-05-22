@@ -1,4 +1,4 @@
-package com.ruerpc.Impl;
+package com.ruerpc.impl;
 
 import com.ruerpc.Hello;
 

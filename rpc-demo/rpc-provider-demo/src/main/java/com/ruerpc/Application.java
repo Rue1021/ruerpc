@@ -1,6 +1,7 @@
 package com.ruerpc;
 
-import com.ruerpc.Impl.HelloImpl;
+import com.ruerpc.discovery.RegistryConfig;
+import com.ruerpc.impl.HelloImpl;
 
 /**
  * @author Rue

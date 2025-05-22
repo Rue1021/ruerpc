@@ -1,8 +1,7 @@
 package com.ruerpc;
 
-import com.ruerpc.exceptions.ZooKeeperException;
 import com.ruerpc.utils.zookeeper.ZooKeeperNode;
-import com.ruerpc.utils.zookeeper.ZooKeeperUtil;
+import com.ruerpc.utils.zookeeper.ZooKeeperUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.zookeeper.*;
 
@@ -19,7 +18,7 @@ public class Application {
     public static void main(String[] args) {
 
             //创建一个zookeeper实例
-            ZooKeeper zooKeeper = ZooKeeperUtil.createZookeeper();
+            ZooKeeper zooKeeper = ZooKeeperUtils.createZookeeper();
             //定义节点和数据
             String basePath = "/ruerpc-metadata";
             String providerPath = basePath + "/providers";
@@ -30,10 +29,10 @@ public class Application {
             ZooKeeperNode consumerNode = new ZooKeeperNode(consumerPath, null);
             //创建节点
             List.of(baseNode, providerNode, consumerNode).forEach(zooKeeperNode -> {
-                ZooKeeperUtil.createNode(zooKeeper, zooKeeperNode, null, CreateMode.PERSISTENT);
+                ZooKeeperUtils.createNode(zooKeeper, zooKeeperNode, null, CreateMode.PERSISTENT);
             });
             //关闭连接
-            ZooKeeperUtil.close(zooKeeper);
+            ZooKeeperUtils.close(zooKeeper);
 
     }
 }

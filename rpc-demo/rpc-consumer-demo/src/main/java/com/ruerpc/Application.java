@@ -1,5 +1,7 @@
 package com.ruerpc;
 
+import com.ruerpc.discovery.RegistryConfig;
+
 /**
  * @author Rue
  * @date 2025/5/20 12:39

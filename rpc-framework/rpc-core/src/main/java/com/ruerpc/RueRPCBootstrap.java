@@ -1,10 +1,13 @@
 package com.ruerpc;
 
+import com.ruerpc.discovery.Registry;
+import com.ruerpc.discovery.RegistryConfig;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -14,15 +17,26 @@ import java.util.List;
 @Slf4j
 public class RueRPCBootstrap {
 
+    //RueRPCBootstrap是个单例，即希望每个应用程序只有一个实例，用饿汉式写
+    private static final RueRPCBootstrap rueRPCBootstrap = new RueRPCBootstrap();
+
     private String appName;
     private RegistryConfig registryConfig;
     private ProtocolConfig protocolConfig;
 
+    private Registry registry;
+
+    //维护已经发布并暴露的服务列表 key -> interface的全限定名 value -> ServiceConfig
+    private static final Map<String, ServiceConfig<?>> SERVICES_LIST = new ConcurrentHashMap<>(16);
+
+    //维护一个zookeeper实例
+    //private ZooKeeper zooKeeper;
+
+
     //没有Slf4j注解时需要用这一句
     //private static final Logger logger = LoggerFactory.getLogger(RueRPCBootstrap.class);
 
-    //RueRPCBootstrap是个单例，即希望每个应用程序只有一个实例，用饿汉式写
-    private static final RueRPCBootstrap rueRPCBootstrap = new RueRPCBootstrap();
+
 
 
     private RueRPCBootstrap() {}
@@ -48,7 +62,7 @@ public class RueRPCBootstrap {
      * @return this当前实例
      */
     public RueRPCBootstrap registry(RegistryConfig registryConfig) {
-        this.registryConfig = registryConfig;
+        this.registry = registryConfig.getRegistry();
         return this;
     }
 
@@ -65,12 +79,7 @@ public class RueRPCBootstrap {
         return this;
     }
 
-    /**
-     * 启动netty服务
-     */
-    public void start() {
 
-    }
 
     /**
      * ---------------------------⬇️服务提供方的相关api---------------------------------
@@ -82,9 +91,9 @@ public class RueRPCBootstrap {
      * @return
      */
     public RueRPCBootstrap publish(ServiceConfig<?> service) {
-        if (log.isDebugEnabled()) {
-            log.debug("{}服务被注册", service);
-        }
+        //抽象了注册中心，使用注册中心的一个实例完成注册
+        registry.register(service);
+        SERVICES_LIST.put(service.getInterface().getName(), service);
         return this;
     }
 
@@ -93,10 +102,19 @@ public class RueRPCBootstrap {
      * @param service
      * @return
      */
-    public RueRPCBootstrap publish(List<?> service) {
+    public RueRPCBootstrap publish(List<ServiceConfig<?>> service) {
+        for (ServiceConfig<?> serviceConfig : service) {
+            this.publish(serviceConfig);
+        }
         return this;
     }
 
+    /**
+     * 启动netty服务
+     */
+    public void start() {
+
+    }
 
     /**
      * ---------------------------⬇️服务调用方的相关api---------------------------------
