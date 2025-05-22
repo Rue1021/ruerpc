@@ -6,11 +6,11 @@ import com.ruerpc.discovery.RegistryConfig;
  * @author Rue
  * @date 2025/5/20 12:39
  */
-public class Application {
+public class ConsumerApplication {
     public static void main(String[] args) {
-
+        //reference来自远端的引用
         ReferenceConfig<Hello> reference = new ReferenceConfig<>();
-        reference.setInstance(Hello.class);
+        reference.setInterfaceRef(Hello.class);
 
         RueRPCBootstrap.getInstance()
                 .application("first-ruerpc-consumer")

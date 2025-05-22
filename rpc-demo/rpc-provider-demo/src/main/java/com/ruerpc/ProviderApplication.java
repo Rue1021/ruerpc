@@ -7,7 +7,7 @@ import com.ruerpc.impl.HelloImpl;
  * @author Rue
  * @date 2025/5/20 12:35
  */
-public class Application {
+public class ProviderApplication {
     public static void main(String[] args) {
 
         ServiceConfig<Hello> service = new ServiceConfig<>();

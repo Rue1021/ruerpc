@@ -113,7 +113,11 @@ public class RueRPCBootstrap {
      * 启动netty服务
      */
     public void start() {
-
+        try {
+            Thread.sleep(100000000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -121,6 +125,7 @@ public class RueRPCBootstrap {
      */
 
     public RueRPCBootstrap reference(ReferenceConfig<?> reference) {
+        reference.setRegistry(registry);
         return this;
     }
 }
