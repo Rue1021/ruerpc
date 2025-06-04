@@ -36,12 +36,12 @@ public class ZooKeeperUtils {
         CountDownLatch countDownLatch = new CountDownLatch(1);
 
         try {
-            log.info("尝试建立zookeeper连接");
+            log.debug("尝试建立zookeeper连接");
             //创建zookeeper实例，建立连接
             final ZooKeeper zooKeeper = new ZooKeeper(connectString, timeout, event -> {
                 //只有连接成功才放行
                 if (event.getState() == Watcher.Event.KeeperState.SyncConnected) {
-                    System.out.println("客户端连接成功");
+                    log.debug("客户端连接成功");
                     countDownLatch.countDown();
                 }
             });

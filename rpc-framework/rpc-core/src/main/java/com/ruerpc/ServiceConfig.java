@@ -7,7 +7,7 @@ package com.ruerpc;
 public class ServiceConfig<T> {
 
     private Class<T> interfaceProvider;
-    private Object ref;
+    private Object ref; //具体的引用的实现
 
     public Class<T> getInterface() {
         return interfaceProvider;

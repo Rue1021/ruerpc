@@ -1,12 +1,22 @@
 package com.ruerpc;
 
+import com.ruerpc.channelHandler.handler.MethodCallHandler;
+import com.ruerpc.channelHandler.handler.RueRPCRequestDecoder;
+import com.ruerpc.channelHandler.handler.RueRPCResponseEncoder;
 import com.ruerpc.discovery.Registry;
 import com.ruerpc.discovery.RegistryConfig;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.*;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.logging.LoggingHandler;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.HashMap;
+import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 
@@ -23,11 +33,17 @@ public class RueRPCBootstrap {
     private String appName;
     private RegistryConfig registryConfig;
     private ProtocolConfig protocolConfig;
+    private int port = 8090;
 
     private Registry registry;
 
     //维护已经发布并暴露的服务列表 key -> interface的全限定名 value -> ServiceConfig
-    private static final Map<String, ServiceConfig<?>> SERVICES_LIST = new ConcurrentHashMap<>(16);
+    public static final Map<String, ServiceConfig<?>> SERVICES_LIST = new ConcurrentHashMap<>(16);
+
+    public static final Map<InetSocketAddress, Channel> CHANNEL_CACHE = new ConcurrentHashMap<>(16);
+
+    //定义全局对外挂起的CompletableFuture
+    public static final Map<Long, CompletableFuture<Object>> PENDING_REQUEST = new ConcurrentHashMap<>(128);
 
     //维护一个zookeeper实例
     //private ZooKeeper zooKeeper;
@@ -35,9 +51,6 @@ public class RueRPCBootstrap {
 
     //没有Slf4j注解时需要用这一句
     //private static final Logger logger = LoggerFactory.getLogger(RueRPCBootstrap.class);
-
-
-
 
     private RueRPCBootstrap() {}
 
@@ -113,10 +126,36 @@ public class RueRPCBootstrap {
      * 启动netty服务
      */
     public void start() {
+        EventLoopGroup boss = new NioEventLoopGroup(2);
+        EventLoopGroup worker = new NioEventLoopGroup(10);
         try {
-            Thread.sleep(100000000);
+            ServerBootstrap serverBootstrap = new ServerBootstrap();
+            serverBootstrap =  serverBootstrap.group(boss, worker)
+                    //工厂方法设计模式实例化一个channel
+                    .channel(NioServerSocketChannel.class)
+                    .childHandler(new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        protected void initChannel(SocketChannel socketChannel) throws Exception {
+                            //需要添加很多出站和入站的handler
+                            socketChannel.pipeline().addLast(new LoggingHandler())
+                                    .addLast(new RueRPCRequestDecoder())
+                                    .addLast(new MethodCallHandler())
+                                    .addLast(new RueRPCResponseEncoder());
+                        }
+                    });
+
+            ChannelFuture channelFuture = serverBootstrap.bind(port).sync();
+
+            channelFuture.channel().closeFuture().sync();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
+        } finally {
+            try {
+                boss.shutdownGracefully().sync();
+                worker.shutdownGracefully().sync();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 

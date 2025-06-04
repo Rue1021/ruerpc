@@ -1,11 +1,13 @@
 package com.ruerpc;
 
 import com.ruerpc.discovery.RegistryConfig;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author Rue
  * @date 2025/5/20 12:39
  */
+@Slf4j
 public class ConsumerApplication {
     public static void main(String[] args) {
         //reference来自远端的引用
@@ -18,6 +20,7 @@ public class ConsumerApplication {
                 .reference(reference);
 
         Hello hello = reference.get();
-        hello.sayHi("ruerpc");
+        String sayHi = hello.sayHi("ruerpc");
+        log.info("sayHi -> {}", sayHi);
     }
 }
