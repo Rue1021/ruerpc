@@ -2,6 +2,7 @@ package com.ruerpc.channelHandler;
 
 import com.ruerpc.channelHandler.handler.MySimpleChannelInboundHandler;
 import com.ruerpc.channelHandler.handler.RueRPCRequestEncoder;
+import com.ruerpc.channelHandler.handler.RueRPCResponseDecoder;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.logging.LogLevel;
@@ -21,10 +22,9 @@ public class ConsumerChannelInitializer extends ChannelInitializer<SocketChannel
                 .addLast(new LoggingHandler(LogLevel.DEBUG))
                 //消息编码器
                 .addLast(new RueRPCRequestEncoder())
-                /*
-                ------⬆️出站------
-                ------⬇️入站------
-                 */
+                //入站解码器
+                .addLast(new RueRPCResponseDecoder())
+                //处理结果
                 .addLast(new MySimpleChannelInboundHandler());
     }
 }

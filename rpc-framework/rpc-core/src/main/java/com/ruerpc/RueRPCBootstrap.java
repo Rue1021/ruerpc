@@ -48,7 +48,6 @@ public class RueRPCBootstrap {
     //维护一个zookeeper实例
     //private ZooKeeper zooKeeper;
 
-
     //没有Slf4j注解时需要用这一句
     //private static final Logger logger = LoggerFactory.getLogger(RueRPCBootstrap.class);
 

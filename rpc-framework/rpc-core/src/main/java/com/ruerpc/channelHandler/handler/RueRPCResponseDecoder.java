@@ -4,6 +4,7 @@ import com.ruerpc.enumeration.RequestType;
 import com.ruerpc.transport.message.MessageFormatConstant;
 import com.ruerpc.transport.message.RequestPayload;
 import com.ruerpc.transport.message.RueRPCRequest;
+import com.ruerpc.transport.message.RueRPCResponse;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
@@ -20,9 +21,9 @@ import java.util.Arrays;
  * 基于字段长度的帧解码器
  */
 @Slf4j
-public class RueRPCRequestDecoder extends LengthFieldBasedFrameDecoder {
+public class RueRPCResponseDecoder extends LengthFieldBasedFrameDecoder {
 
-    public RueRPCRequestDecoder() {
+    public RueRPCResponseDecoder() {
         super(MessageFormatConstant.MAX_FRAME_LENGTH,
                 MessageFormatConstant.LENGTH_FIELD_OFFSET,
                 MessageFormatConstant.FULL_FIELD_LENGTH,
@@ -76,25 +77,25 @@ public class RueRPCRequestDecoder extends LengthFieldBasedFrameDecoder {
             throw new RuntimeException("insufficient bytes");
         }
 
-        // 5. 读取请求类型、序列化类型和压缩类型
-        byte requestType = byteBuf.readByte();
+        // 5. 读取响应码、序列化类型和压缩类型
+        byte responseCode = byteBuf.readByte();
         byte serializeType = byteBuf.readByte();
         byte compressType = byteBuf.readByte();
 
         // 6. 读取请求ID
         long requestId = byteBuf.readLong();
 
-        RueRPCRequest rueRPCRequest = RueRPCRequest.builder()
-                .requestType(requestType)
+        RueRPCResponse rueRPCResponse = RueRPCResponse.builder()
+                .responseCode(responseCode)
                 .serializeType(serializeType)
                 .compressType(compressType)
                 .requestId(requestId)
                 .build();
 
         //如果是心跳检测请求，就不需要再读请求体
-        if (requestType == RequestType.HEART_BEAT.getId()) {
-            return rueRPCRequest;
-        }
+//        if (requestType == RequestType.HEART_BEAT.getId()) {
+//            return rueRPCRequest;
+//        }
 
         // 7. 读取请求体
         int bodyLength = fullLength - MessageFormatConstant.HEADER_LENGTH;
@@ -102,23 +103,21 @@ public class RueRPCRequestDecoder extends LengthFieldBasedFrameDecoder {
         byteBuf.readBytes(bodyBytes);
 
 
-
         // 9. 反序列化请求体
-        if (bodyLength > 0) {
-            RequestPayload requestPayload = deserializeBody(bodyBytes);
-            rueRPCRequest.setRequestPayload(requestPayload);
-        }
+        Object body = deserializeBody(bodyBytes);
+        rueRPCResponse.setBody(body);
 
         if (log.isDebugEnabled()) {
-            log.debug("请求【{}】已经在服务端完成解码工作", requestId);
+            log.debug("响应【{}】已经在调用端完成解码", rueRPCResponse.getRequestId());
         }
-        return rueRPCRequest;
+
+        return rueRPCResponse;
     }
 
-    private RequestPayload deserializeBody(byte[] bodyBytes) {
+    private Object deserializeBody(byte[] bodyBytes) {
         try (ByteArrayInputStream bais = new ByteArrayInputStream(bodyBytes);
              ObjectInputStream ois = new ObjectInputStream(bais)) {
-            return (RequestPayload) ois.readObject();
+            return ois.readObject();
         } catch (IOException | ClassNotFoundException e) {
             log.error("反序列化时出现异常：", e);
             throw new RuntimeException(e);

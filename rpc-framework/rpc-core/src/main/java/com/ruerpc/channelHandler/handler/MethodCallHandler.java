@@ -2,8 +2,10 @@ package com.ruerpc.channelHandler.handler;
 
 import com.ruerpc.RueRPCBootstrap;
 import com.ruerpc.ServiceConfig;
+import com.ruerpc.enumeration.ResponseCode;
 import com.ruerpc.transport.message.RequestPayload;
 import com.ruerpc.transport.message.RueRPCRequest;
+import com.ruerpc.transport.message.RueRPCResponse;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
@@ -23,10 +25,20 @@ public class MethodCallHandler extends SimpleChannelInboundHandler<RueRPCRequest
         //1. 获取负载
         RequestPayload requestPayload = rueRPCRequest.getRequestPayload();
         //2. 根据负载内容进行方法调用
-        Object object = callTargetMethod(requestPayload);
+        Object result = callTargetMethod(requestPayload);
+        if (log.isDebugEnabled()) {
+            log.debug("请求【{}】已经在服务端完成方法调用", rueRPCRequest.getRequestId());
+        }
         //3. 封装响应
+        RueRPCResponse rueRPCResponse = RueRPCResponse.builder()
+                .responseCode(ResponseCode.SUCCESS.getCode())
+                .requestId(rueRPCRequest.getRequestId())
+                .compressType(rueRPCRequest.getCompressType())
+                .serializeType(rueRPCRequest.getSerializeType())
+                .body(result)
+                .build();
         //4. 写出响应
-        channelHandlerContext.channel().writeAndFlush(null);
+        channelHandlerContext.channel().writeAndFlush(rueRPCResponse);
     }
 
     private Object callTargetMethod(RequestPayload requestPayload) {

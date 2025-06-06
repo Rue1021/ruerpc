@@ -89,7 +89,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                 (ChannelFutureListener) promise -> {
                     /* 一旦数据被写出去，这个promise就结束了，
                        所以我们需要挂起completableFuture并暴露，并且在得到服务提供方响应的时候调用complete方法
-                       在哪里调用complete方法 -> pipeline
+                       pipeline里会调用complete方法，
                        我们要pipeline中最终的handler的处理结果
                      */
                     if (!promise.isSuccess()) {

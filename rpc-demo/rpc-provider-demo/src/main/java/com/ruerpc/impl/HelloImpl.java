@@ -10,6 +10,6 @@ public class HelloImpl implements Hello {
 
     @Override
     public String sayHi(String msg) {
-        return "hi consumer" + msg;
+        return "hi consumer " + msg;
     }
 }

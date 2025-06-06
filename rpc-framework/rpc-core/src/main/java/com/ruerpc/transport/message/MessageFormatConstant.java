@@ -7,7 +7,7 @@ package com.ruerpc.transport.message;
 public class MessageFormatConstant {
 
     public static final byte[] MAGIC = "rrpc".getBytes();
-    public static final int MAGIC_LENGTH = 1;
+    public static final int MAGIC_LENGTH = MAGIC.length;
 
     public static final byte VERSION = 1;
     public static final int VERSION_LENGTH = 1;

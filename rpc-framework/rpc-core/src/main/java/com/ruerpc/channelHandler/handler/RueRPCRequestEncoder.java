@@ -70,6 +70,10 @@ public class RueRPCRequestEncoder extends MessageToByteEncoder<RueRPCRequest> {
         byteBuf.writeInt(MessageFormatConstant.HEADER_LENGTH + bodyLength);
         byteBuf.writerIndex(index); //写指针归位
 
+        if (log.isDebugEnabled()) {
+            log.debug("请求【{}】已完成报文的编码", rueRPCRequest.getRequestId());
+        }
+
     }
 
     private byte[] getBodyBytes(RequestPayload requestPayload) {
