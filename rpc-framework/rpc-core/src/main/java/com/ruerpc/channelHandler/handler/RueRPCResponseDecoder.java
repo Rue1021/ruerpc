@@ -1,6 +1,8 @@
 package com.ruerpc.channelHandler.handler;
 
 import com.ruerpc.enumeration.RequestType;
+import com.ruerpc.serialize.Serializer;
+import com.ruerpc.serialize.SerializerFactory;
 import com.ruerpc.transport.message.MessageFormatConstant;
 import com.ruerpc.transport.message.RequestPayload;
 import com.ruerpc.transport.message.RueRPCRequest;
@@ -92,11 +94,6 @@ public class RueRPCResponseDecoder extends LengthFieldBasedFrameDecoder {
                 .requestId(requestId)
                 .build();
 
-        //如果是心跳检测请求，就不需要再读请求体
-//        if (requestType == RequestType.HEART_BEAT.getId()) {
-//            return rueRPCRequest;
-//        }
-
         // 7. 读取请求体
         int bodyLength = fullLength - MessageFormatConstant.HEADER_LENGTH;
         byte[] bodyBytes = new byte[bodyLength];
@@ -104,7 +101,9 @@ public class RueRPCResponseDecoder extends LengthFieldBasedFrameDecoder {
 
 
         // 9. 反序列化请求体
-        Object body = deserializeBody(bodyBytes);
+        Serializer serializer = SerializerFactory
+                .getSerializer(rueRPCResponse.getSerializeType()).getSerializer();
+        Object body = serializer.deserialize(bodyBytes, Object.class);
         rueRPCResponse.setBody(body);
 
         if (log.isDebugEnabled()) {
@@ -112,15 +111,5 @@ public class RueRPCResponseDecoder extends LengthFieldBasedFrameDecoder {
         }
 
         return rueRPCResponse;
-    }
-
-    private Object deserializeBody(byte[] bodyBytes) {
-        try (ByteArrayInputStream bais = new ByteArrayInputStream(bodyBytes);
-             ObjectInputStream ois = new ObjectInputStream(bais)) {
-            return ois.readObject();
-        } catch (IOException | ClassNotFoundException e) {
-            log.error("反序列化时出现异常：", e);
-            throw new RuntimeException(e);
-        }
     }
 }

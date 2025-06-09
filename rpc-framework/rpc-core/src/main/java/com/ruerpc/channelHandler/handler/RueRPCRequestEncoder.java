@@ -1,16 +1,14 @@
 package com.ruerpc.channelHandler.handler;
 
+import com.ruerpc.RueRPCBootstrap;
+import com.ruerpc.serialize.Serializer;
+import com.ruerpc.serialize.SerializerFactory;
 import com.ruerpc.transport.message.MessageFormatConstant;
-import com.ruerpc.transport.message.RequestPayload;
 import com.ruerpc.transport.message.RueRPCRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
 import lombok.extern.slf4j.Slf4j;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
 
 /**
  * @author Rue
@@ -54,7 +52,8 @@ public class RueRPCRequestEncoder extends MessageToByteEncoder<RueRPCRequest> {
         byteBuf.writeLong(rueRPCRequest.getRequestId());
 
         //把请求体写入
-        byte[] body = getBodyBytes(rueRPCRequest.getRequestPayload());
+        Serializer serializer = SerializerFactory.getSerializer(RueRPCBootstrap.SERIALIZE_TYPE).getSerializer();
+        byte[] body = serializer.serialize(rueRPCRequest.getRequestPayload());
 
         if (body != null) {
             byteBuf.writeBytes(body);
@@ -76,18 +75,4 @@ public class RueRPCRequestEncoder extends MessageToByteEncoder<RueRPCRequest> {
 
     }
 
-    private byte[] getBodyBytes(RequestPayload requestPayload) {
-        if (requestPayload == null) {
-            return null;
-        }
-
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-             ObjectOutputStream outputStream = new ObjectOutputStream(baos)) {
-            outputStream.writeObject(requestPayload);
-            return baos.toByteArray();
-        } catch (IOException e) {
-            log.error("序列化时出现异常：", e);
-            throw new RuntimeException(e);
-        }
-    }
 }

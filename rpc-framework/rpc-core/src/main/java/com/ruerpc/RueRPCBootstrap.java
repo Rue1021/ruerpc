@@ -35,6 +35,8 @@ public class RueRPCBootstrap {
     private ProtocolConfig protocolConfig;
     private int port = 8090;
 
+    public static String SERIALIZE_TYPE = "jdk";
+
     public static final IdGenerator ID_GENERATOR = new IdGenerator(1L, 2L);
 
     private Registry registry;
@@ -166,6 +168,19 @@ public class RueRPCBootstrap {
 
     public RueRPCBootstrap reference(ReferenceConfig<?> reference) {
         reference.setRegistry(registry);
+        return this;
+    }
+
+    /**
+     * 配置序列化的方式
+     * @param serializeType
+     * @return
+     */
+    public RueRPCBootstrap serialize(String serializeType) {
+        SERIALIZE_TYPE = serializeType;
+        if (log.isDebugEnabled()) {
+            log.debug("配置了序列化方式【{}】", serializeType);
+        }
         return this;
     }
 }

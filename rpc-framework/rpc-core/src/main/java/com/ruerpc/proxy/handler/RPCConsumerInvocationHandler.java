@@ -6,6 +6,7 @@ import com.ruerpc.discovery.Registry;
 import com.ruerpc.enumeration.RequestType;
 import com.ruerpc.exceptions.DiscoveryException;
 import com.ruerpc.exceptions.NetworkException;
+import com.ruerpc.serialize.SerializerFactory;
 import com.ruerpc.transport.message.RequestPayload;
 import com.ruerpc.transport.message.RueRPCRequest;
 import io.netty.buffer.Unpooled;
@@ -70,7 +71,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                 .requestId(RueRPCBootstrap.ID_GENERATOR.getId())
                 .requestType(RequestType.REQUEST.getId())
                 .compressType((byte)1)
-                .serializeType((byte)1)
+                .serializeType(SerializerFactory.getSerializer(RueRPCBootstrap.SERIALIZE_TYPE).getCode())
                 .requestPayload(requestPayload)
                 .build();
 

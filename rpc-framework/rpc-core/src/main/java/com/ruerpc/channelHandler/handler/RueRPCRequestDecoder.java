@@ -1,6 +1,9 @@
 package com.ruerpc.channelHandler.handler;
 
 import com.ruerpc.enumeration.RequestType;
+import com.ruerpc.serialize.Serializer;
+import com.ruerpc.serialize.SerializerFactory;
+import com.ruerpc.serialize.SerializerWrapper;
 import com.ruerpc.transport.message.MessageFormatConstant;
 import com.ruerpc.transport.message.RequestPayload;
 import com.ruerpc.transport.message.RueRPCRequest;
@@ -102,26 +105,15 @@ public class RueRPCRequestDecoder extends LengthFieldBasedFrameDecoder {
         byteBuf.readBytes(bodyBytes);
 
 
+        //9. 拿到序列化器，进行反序列化请求体
+        Serializer serializer = SerializerFactory.getSerializer(serializeType).getSerializer();
+        RequestPayload requestPayload = serializer.deserialize(bodyBytes, RequestPayload.class);
 
-        // 9. 反序列化请求体
-        if (bodyLength > 0) {
-            RequestPayload requestPayload = deserializeBody(bodyBytes);
-            rueRPCRequest.setRequestPayload(requestPayload);
-        }
+        rueRPCRequest.setRequestPayload(requestPayload);
 
         if (log.isDebugEnabled()) {
             log.debug("请求【{}】已经在服务端完成解码工作", requestId);
         }
         return rueRPCRequest;
-    }
-
-    private RequestPayload deserializeBody(byte[] bodyBytes) {
-        try (ByteArrayInputStream bais = new ByteArrayInputStream(bodyBytes);
-             ObjectInputStream ois = new ObjectInputStream(bais)) {
-            return (RequestPayload) ois.readObject();
-        } catch (IOException | ClassNotFoundException e) {
-            log.error("反序列化时出现异常：", e);
-            throw new RuntimeException(e);
-        }
     }
 }

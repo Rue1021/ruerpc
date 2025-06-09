@@ -17,6 +17,7 @@ public class ConsumerApplication {
         RueRPCBootstrap.getInstance()
                 .application("first-ruerpc-consumer")
                 .registry(new RegistryConfig("zookeeper://127.0.0.1:2181"))
+                .serialize("jdk")
                 .reference(reference);
 
         Hello hello = reference.get();

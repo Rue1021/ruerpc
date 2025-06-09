@@ -1,5 +1,7 @@
 package com.ruerpc.channelHandler.handler;
 
+import com.ruerpc.serialize.Serializer;
+import com.ruerpc.serialize.SerializerFactory;
 import com.ruerpc.transport.message.MessageFormatConstant;
 import com.ruerpc.transport.message.RequestPayload;
 import com.ruerpc.transport.message.RueRPCRequest;
@@ -54,16 +56,18 @@ public class RueRPCResponseEncoder extends MessageToByteEncoder<RueRPCResponse> 
         //8字节的请求id
         byteBuf.writeLong(rueRPCResponse.getRequestId());
 
-        //把请求体写入
-        byte[] body = getBodyBytes(rueRPCResponse.getBody());
+        //序列化请求体
+        Serializer serializer = SerializerFactory
+                .getSerializer(rueRPCResponse.getSerializeType()).getSerializer();
+        byte[] body = serializer.serialize(rueRPCResponse.getBody());
 
+        //todo 压缩
+
+        //写入
         if (body != null) {
             byteBuf.writeBytes(body);
         }
-
         int bodyLength = body == null ? 0 : body.length;
-
-
 
         //重新处理报文总长度
         int index = byteBuf.writerIndex(); //保存当前写指针位置
@@ -71,20 +75,5 @@ public class RueRPCResponseEncoder extends MessageToByteEncoder<RueRPCResponse> 
         byteBuf.writeInt(MessageFormatConstant.HEADER_LENGTH + bodyLength);
         byteBuf.writerIndex(index); //写指针归位
 
-    }
-
-    private byte[] getBodyBytes(Object body) {
-        if (body == null) {
-            return null;
-        }
-
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-             ObjectOutputStream outputStream = new ObjectOutputStream(baos)) {
-            outputStream.writeObject(body);
-            return baos.toByteArray();
-        } catch (IOException e) {
-            log.error("序列化时出现异常：", e);
-            throw new RuntimeException(e);
-        }
     }
 }
