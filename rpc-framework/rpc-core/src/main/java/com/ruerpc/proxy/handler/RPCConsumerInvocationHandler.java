@@ -67,7 +67,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                 .build();
 
         RueRPCRequest rueRPCRequest = RueRPCRequest.builder()
-                .requestId(1L)
+                .requestId(RueRPCBootstrap.ID_GENERATOR.getId())
                 .requestType(RequestType.REQUEST.getId())
                 .compressType((byte)1)
                 .serializeType((byte)1)

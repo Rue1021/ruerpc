@@ -35,6 +35,8 @@ public class RueRPCBootstrap {
     private ProtocolConfig protocolConfig;
     private int port = 8090;
 
+    public static final IdGenerator ID_GENERATOR = new IdGenerator(1L, 2L);
+
     private Registry registry;
 
     //维护已经发布并暴露的服务列表 key -> interface的全限定名 value -> ServiceConfig
