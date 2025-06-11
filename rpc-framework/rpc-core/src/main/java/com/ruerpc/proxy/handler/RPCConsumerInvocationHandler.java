@@ -43,7 +43,34 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 
-        //1. 从注册中心发现可用服务 -> 传入服务的名字，返回ip+端口
+        /*
+        --------------------------1. 封装报文------------------------------------------
+         */
+
+        //封装报文
+        RequestPayload requestPayload = RequestPayload.builder()
+                .interfaceName(interfaceRef.getName())
+                .methodName(method.getName())
+                .parametersType(method.getParameterTypes())
+                .parametersValue(args)
+                .returnType(method.getReturnType())
+                .build();
+        //创建请求
+        RueRPCRequest rueRPCRequest = RueRPCRequest.builder()
+                .requestId(RueRPCBootstrap.ID_GENERATOR.getId())
+                .requestType(RequestType.REQUEST.getId())
+                .compressType(CompressorFactory.getCompressor(RueRPCBootstrap.COMPRESS_TYPE).getCode())
+                .serializeType(SerializerFactory.getSerializer(RueRPCBootstrap.SERIALIZE_TYPE).getCode())
+                .requestPayload(requestPayload)
+                .build();
+        //将请求放入本地线程
+        RueRPCBootstrap.REQUEST_THREAD_LOCAL.set(rueRPCRequest);
+
+        /*
+        ----------2. 发现服务，从注册中心拉取服务列表，并通过客户端负载均衡寻找一个可用服务-----------
+         */
+
+        //1. 传入服务的名字，返回ip+端口
         InetSocketAddress address = RueRPCBootstrap.LOAD_BALANCER.selectServiceAddress(interfaceRef.getName());
         if (log.isDebugEnabled()) {
             log.debug("服务调用方，发现了服务【{}】的可用主机【{}】", interfaceRef.getName(), address);
@@ -55,26 +82,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
             log.debug("获取了和【{}】建立的连接通道，准备发送数据", address);
         }
 
-        /*
-        ---------------------------------------封装报文------------------------------------------
-         */
 
-        //3. 封装报文
-        RequestPayload requestPayload = RequestPayload.builder()
-                .interfaceName(interfaceRef.getName())
-                .methodName(method.getName())
-                .parametersType(method.getParameterTypes())
-                .parametersValue(args)
-                .returnType(method.getReturnType())
-                .build();
-
-        RueRPCRequest rueRPCRequest = RueRPCRequest.builder()
-                .requestId(RueRPCBootstrap.ID_GENERATOR.getId())
-                .requestType(RequestType.REQUEST.getId())
-                .compressType(CompressorFactory.getCompressor(RueRPCBootstrap.COMPRESS_TYPE).getCode())
-                .serializeType(SerializerFactory.getSerializer(RueRPCBootstrap.SERIALIZE_TYPE).getCode())
-                .requestPayload(requestPayload)
-                .build();
 
         /*
         ---------------------------------------异步策略------------------------------------------
@@ -99,6 +107,9 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                     }
                 }
         );
+
+        //写出以后，清理ThreadLocal
+        RueRPCBootstrap.REQUEST_THREAD_LOCAL.remove();
 
         //5. 获得响应的结果
         return completableFuture.get(30, TimeUnit.SECONDS);

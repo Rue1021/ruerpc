@@ -7,6 +7,7 @@ import java.net.InetSocketAddress;
  * @date 2025/6/11 14:01
  *
  * 负载均衡器接口
+ * 我们做的是客户端负载均衡
  */
 public interface LoadBalancer {
 

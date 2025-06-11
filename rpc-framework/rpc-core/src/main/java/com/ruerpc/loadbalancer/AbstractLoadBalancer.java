@@ -47,5 +47,4 @@ public abstract class AbstractLoadBalancer implements LoadBalancer {
      */
     protected abstract ServiceSelector getServiceSelector(List<InetSocketAddress> serviceList);
 
-
 }

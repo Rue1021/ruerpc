@@ -6,7 +6,9 @@ import com.ruerpc.channelhandler.handler.RueRPCResponseEncoder;
 import com.ruerpc.discovery.Registry;
 import com.ruerpc.discovery.RegistryConfig;
 import com.ruerpc.loadbalancer.LoadBalancer;
+import com.ruerpc.loadbalancer.impl.ConsistentHashLoadBalancer;
 import com.ruerpc.loadbalancer.impl.RoundRobinLoadBalancer;
+import com.ruerpc.transport.message.RueRPCRequest;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -41,6 +43,9 @@ public class RueRPCBootstrap {
     public static String COMPRESS_TYPE = "gzip";
 
     public static final IdGenerator ID_GENERATOR = new IdGenerator(1L, 2L);
+
+
+    public static final ThreadLocal<RueRPCRequest> REQUEST_THREAD_LOCAL = new ThreadLocal<>();
 
     //注册中心
     private Registry registry;
@@ -85,7 +90,7 @@ public class RueRPCBootstrap {
     public RueRPCBootstrap registry(RegistryConfig registryConfig) {
         this.registry = registryConfig.getRegistry();
         //todo
-        RueRPCBootstrap.LOAD_BALANCER = new RoundRobinLoadBalancer();
+        RueRPCBootstrap.LOAD_BALANCER = new ConsistentHashLoadBalancer();
         return this;
     }
 
