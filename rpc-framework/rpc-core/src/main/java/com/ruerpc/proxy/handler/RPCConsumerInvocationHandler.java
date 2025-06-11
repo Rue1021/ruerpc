@@ -44,7 +44,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 
         //1. 从注册中心发现可用服务 -> 传入服务的名字，返回ip+端口
-        InetSocketAddress address = registry.lookup(interfaceRef.getName());
+        InetSocketAddress address = RueRPCBootstrap.LOAD_BALANCER.selectServiceAddress(interfaceRef.getName());
         if (log.isDebugEnabled()) {
             log.debug("服务调用方，发现了服务【{}】的可用主机【{}】", interfaceRef.getName(), address);
         }

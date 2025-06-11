@@ -5,6 +5,8 @@ import com.ruerpc.channelhandler.handler.RueRPCRequestDecoder;
 import com.ruerpc.channelhandler.handler.RueRPCResponseEncoder;
 import com.ruerpc.discovery.Registry;
 import com.ruerpc.discovery.RegistryConfig;
+import com.ruerpc.loadbalancer.LoadBalancer;
+import com.ruerpc.loadbalancer.impl.RoundRobinLoadBalancer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -33,14 +35,16 @@ public class RueRPCBootstrap {
     private String appName;
     private RegistryConfig registryConfig;
     private ProtocolConfig protocolConfig;
-    private int port = 8090;
+    public static int PORT = 8092;
 
     public static String SERIALIZE_TYPE = "jdk";
     public static String COMPRESS_TYPE = "gzip";
 
     public static final IdGenerator ID_GENERATOR = new IdGenerator(1L, 2L);
 
+    //注册中心
     private Registry registry;
+    public static LoadBalancer LOAD_BALANCER;
 
     //维护已经发布并暴露的服务列表 key -> interface的全限定名 value -> ServiceConfig
     public static final Map<String, ServiceConfig<?>> SERVICES_LIST = new ConcurrentHashMap<>(16);
@@ -80,6 +84,8 @@ public class RueRPCBootstrap {
      */
     public RueRPCBootstrap registry(RegistryConfig registryConfig) {
         this.registry = registryConfig.getRegistry();
+        //todo
+        RueRPCBootstrap.LOAD_BALANCER = new RoundRobinLoadBalancer();
         return this;
     }
 
@@ -147,8 +153,8 @@ public class RueRPCBootstrap {
                                     .addLast(new RueRPCResponseEncoder());
                         }
                     });
-
-            ChannelFuture channelFuture = serverBootstrap.bind(port).sync();
+            //绑定端口
+            ChannelFuture channelFuture = serverBootstrap.bind(PORT).sync();
 
             channelFuture.channel().closeFuture().sync();
         } catch (InterruptedException e) {
@@ -198,4 +204,7 @@ public class RueRPCBootstrap {
         return this;
     }
 
+    public Registry getRegistry() {
+        return registry;
+    }
 }

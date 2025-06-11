@@ -22,7 +22,9 @@ public class ConsumerApplication {
                 .reference(reference);
 
         Hello hello = reference.get();
+
         String sayHi = hello.sayHi("ruerpc");
-        log.info("sayHi -> {}", sayHi);
+        log.info("sayHi -> {}, port:{}", sayHi, RueRPCBootstrap.PORT);
+
     }
 }

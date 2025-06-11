@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Rue
  * @date 2025/6/10 13:18
  *
- * 简单工厂
+ * 简单工厂设计模式
  */
 @Slf4j
 public class CompressorFactory {
