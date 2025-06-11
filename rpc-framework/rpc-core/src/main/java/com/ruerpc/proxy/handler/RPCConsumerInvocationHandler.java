@@ -2,6 +2,7 @@ package com.ruerpc.proxy.handler;
 
 import com.ruerpc.NettyBootstrapInitializer;
 import com.ruerpc.RueRPCBootstrap;
+import com.ruerpc.compress.CompressorFactory;
 import com.ruerpc.discovery.Registry;
 import com.ruerpc.enumeration.RequestType;
 import com.ruerpc.exceptions.DiscoveryException;
@@ -70,7 +71,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
         RueRPCRequest rueRPCRequest = RueRPCRequest.builder()
                 .requestId(RueRPCBootstrap.ID_GENERATOR.getId())
                 .requestType(RequestType.REQUEST.getId())
-                .compressType((byte)1)
+                .compressType(CompressorFactory.getCompressor(RueRPCBootstrap.COMPRESS_TYPE).getCode())
                 .serializeType(SerializerFactory.getSerializer(RueRPCBootstrap.SERIALIZE_TYPE).getCode())
                 .requestPayload(requestPayload)
                 .build();

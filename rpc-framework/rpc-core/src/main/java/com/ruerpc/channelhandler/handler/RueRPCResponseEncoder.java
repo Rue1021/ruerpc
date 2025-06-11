@@ -1,19 +1,15 @@
-package com.ruerpc.channelHandler.handler;
+package com.ruerpc.channelhandler.handler;
 
+import com.ruerpc.compress.Compressor;
+import com.ruerpc.compress.CompressorFactory;
 import com.ruerpc.serialize.Serializer;
 import com.ruerpc.serialize.SerializerFactory;
 import com.ruerpc.transport.message.MessageFormatConstant;
-import com.ruerpc.transport.message.RequestPayload;
-import com.ruerpc.transport.message.RueRPCRequest;
 import com.ruerpc.transport.message.RueRPCResponse;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
 import lombok.extern.slf4j.Slf4j;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
 
 /**
  * @author Rue
@@ -61,7 +57,11 @@ public class RueRPCResponseEncoder extends MessageToByteEncoder<RueRPCResponse> 
                 .getSerializer(rueRPCResponse.getSerializeType()).getSerializer();
         byte[] body = serializer.serialize(rueRPCResponse.getBody());
 
-        //todo 压缩
+        //压缩
+        Compressor compressor = CompressorFactory
+                .getCompressor(rueRPCResponse.getCompressType())
+                .getCompressor();
+        body = compressor.compress(body);
 
         //写入
         if (body != null) {

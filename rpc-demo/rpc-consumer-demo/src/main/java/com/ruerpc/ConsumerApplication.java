@@ -18,6 +18,7 @@ public class ConsumerApplication {
                 .application("first-ruerpc-consumer")
                 .registry(new RegistryConfig("zookeeper://127.0.0.1:2181"))
                 .serialize("jdk")
+                .compress("gzip")
                 .reference(reference);
 
         Hello hello = reference.get();

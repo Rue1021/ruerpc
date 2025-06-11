@@ -3,6 +3,7 @@ package com.ruerpc.serialize;
 import com.ruerpc.serialize.impl.HessianSerializer;
 import com.ruerpc.serialize.impl.JdkSerializer;
 import com.ruerpc.serialize.impl.JsonSerializer;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -12,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * 两个工厂方法
  */
+@Slf4j
 public class SerializerFactory {
 
     private static final ConcurrentHashMap<String, SerializerWrapper> SERIALIZER_CACHE = new ConcurrentHashMap<>(8);
@@ -36,10 +38,20 @@ public class SerializerFactory {
      * @return
      */
     public static SerializerWrapper getSerializer(String serializeType) {
-        return SERIALIZER_CACHE.get(serializeType);
+        SerializerWrapper serializerWrapper = SERIALIZER_CACHE.get(serializeType);
+        if (serializerWrapper == null) {
+           log.error("未找到配置的序列化类型【{}】,默认选用jdk序列化工具",serializeType);
+           return SERIALIZER_CACHE.get("jdk");
+        }
+        return serializerWrapper;
     }
 
     public static SerializerWrapper getSerializer(byte serializeCode) {
-        return SERIALIZER_CACHE_CODE.get(serializeCode);
+        SerializerWrapper serializerWrapper = SERIALIZER_CACHE_CODE.get(serializeCode);
+        if (serializerWrapper == null) {
+            log.error("未找到配置的序列化类型【{}】，默认选用jdk序列化工具",serializeCode);
+            return SERIALIZER_CACHE.get("jdk");
+        }
+        return serializerWrapper;
     }
 }

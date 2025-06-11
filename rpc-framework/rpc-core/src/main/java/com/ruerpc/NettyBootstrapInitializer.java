@@ -1,12 +1,9 @@
 package com.ruerpc;
 
-import com.ruerpc.channelHandler.ConsumerChannelInitializer;
-import com.ruerpc.channelHandler.handler.MySimpleChannelInboundHandler;
+import com.ruerpc.channelhandler.ConsumerChannelInitializer;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import lombok.extern.slf4j.Slf4j;
 

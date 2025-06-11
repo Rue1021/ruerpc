@@ -1,4 +1,4 @@
-package com.ruerpc.channelHandler.handler;
+package com.ruerpc.channelhandler.handler;
 
 import com.ruerpc.RueRPCBootstrap;
 import com.ruerpc.ServiceConfig;

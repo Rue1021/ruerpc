@@ -3,6 +3,7 @@ package com.ruerpc.discovery;
 import com.ruerpc.ServiceConfig;
 
 import java.net.InetSocketAddress;
+import java.util.List;
 
 /**
  * @author Rue
@@ -21,5 +22,5 @@ public interface Registry {
      * @param serviceName 服务名称
      * @return 服务的ip+端口
      */
-    InetSocketAddress lookup(String serviceName);
+    List<InetSocketAddress> lookup(String serviceName);
 }

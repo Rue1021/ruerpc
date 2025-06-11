@@ -1,8 +1,8 @@
 package com.ruerpc;
 
-import com.ruerpc.channelHandler.handler.MethodCallHandler;
-import com.ruerpc.channelHandler.handler.RueRPCRequestDecoder;
-import com.ruerpc.channelHandler.handler.RueRPCResponseEncoder;
+import com.ruerpc.channelhandler.handler.MethodCallHandler;
+import com.ruerpc.channelhandler.handler.RueRPCRequestDecoder;
+import com.ruerpc.channelhandler.handler.RueRPCResponseEncoder;
 import com.ruerpc.discovery.Registry;
 import com.ruerpc.discovery.RegistryConfig;
 import io.netty.bootstrap.ServerBootstrap;
@@ -36,6 +36,7 @@ public class RueRPCBootstrap {
     private int port = 8090;
 
     public static String SERIALIZE_TYPE = "jdk";
+    public static String COMPRESS_TYPE = "gzip";
 
     public static final IdGenerator ID_GENERATOR = new IdGenerator(1L, 2L);
 
@@ -183,4 +184,18 @@ public class RueRPCBootstrap {
         }
         return this;
     }
+
+    /**
+     * 配置使用的压缩方式
+     * @param compressType
+     * @return
+     */
+    public RueRPCBootstrap compress(String compressType) {
+        COMPRESS_TYPE = compressType;
+        if (log.isDebugEnabled()) {
+            log.debug("配置了压缩算法【{}】", compressType);
+        }
+        return this;
+    }
+
 }

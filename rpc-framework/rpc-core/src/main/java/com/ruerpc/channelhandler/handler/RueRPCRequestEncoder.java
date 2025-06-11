@@ -1,6 +1,7 @@
-package com.ruerpc.channelHandler.handler;
+package com.ruerpc.channelhandler.handler;
 
-import com.ruerpc.RueRPCBootstrap;
+import com.ruerpc.compress.Compressor;
+import com.ruerpc.compress.CompressorFactory;
 import com.ruerpc.serialize.Serializer;
 import com.ruerpc.serialize.SerializerFactory;
 import com.ruerpc.transport.message.MessageFormatConstant;
@@ -51,10 +52,20 @@ public class RueRPCRequestEncoder extends MessageToByteEncoder<RueRPCRequest> {
         //8字节的请求id
         byteBuf.writeLong(rueRPCRequest.getRequestId());
 
-        //把请求体写入
-        Serializer serializer = SerializerFactory.getSerializer(RueRPCBootstrap.SERIALIZE_TYPE).getSerializer();
+        //序列化
+        Serializer serializer = SerializerFactory
+                .getSerializer(rueRPCRequest.getSerializeType())
+                .getSerializer();
         byte[] body = serializer.serialize(rueRPCRequest.getRequestPayload());
 
+        //压缩
+        Compressor compressor = CompressorFactory
+                .getCompressor(rueRPCRequest.getCompressType())
+                .getCompressor();
+        body = compressor.compress(body);
+
+
+        //写入请求体
         if (body != null) {
             byteBuf.writeBytes(body);
         }

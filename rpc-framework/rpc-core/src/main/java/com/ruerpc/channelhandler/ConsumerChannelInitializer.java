@@ -1,8 +1,8 @@
-package com.ruerpc.channelHandler;
+package com.ruerpc.channelhandler;
 
-import com.ruerpc.channelHandler.handler.MySimpleChannelInboundHandler;
-import com.ruerpc.channelHandler.handler.RueRPCRequestEncoder;
-import com.ruerpc.channelHandler.handler.RueRPCResponseDecoder;
+import com.ruerpc.channelhandler.handler.MySimpleChannelInboundHandler;
+import com.ruerpc.channelhandler.handler.RueRPCRequestEncoder;
+import com.ruerpc.channelhandler.handler.RueRPCResponseDecoder;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.logging.LogLevel;
