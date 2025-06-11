@@ -19,6 +19,13 @@ import java.lang.reflect.Method;
  */
 @Slf4j
 public class MethodCallHandler extends SimpleChannelInboundHandler<RueRPCRequest> {
+
+    /**
+     * Netty 框架在收到匹配类型的消息时自动调用的回调方法
+     * @param channelHandlerContext
+     * @param rueRPCRequest
+     * @throws Exception
+     */
     @Override
     protected void channelRead0(ChannelHandlerContext channelHandlerContext,
                                 RueRPCRequest rueRPCRequest) throws Exception {
