@@ -3,10 +3,12 @@ package com.ruerpc;
 import com.ruerpc.channelhandler.handler.MethodCallHandler;
 import com.ruerpc.channelhandler.handler.RueRPCRequestDecoder;
 import com.ruerpc.channelhandler.handler.RueRPCResponseEncoder;
+import com.ruerpc.core.HeartbeatDetector;
 import com.ruerpc.discovery.Registry;
 import com.ruerpc.discovery.RegistryConfig;
 import com.ruerpc.loadbalancer.LoadBalancer;
 import com.ruerpc.loadbalancer.impl.ConsistentHashLoadBalancer;
+import com.ruerpc.loadbalancer.impl.MinimumResponseTimeLoadBalancer;
 import com.ruerpc.loadbalancer.impl.RoundRobinLoadBalancer;
 import com.ruerpc.transport.message.RueRPCRequest;
 import io.netty.bootstrap.ServerBootstrap;
@@ -20,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -37,10 +40,14 @@ public class RueRPCBootstrap {
     private String appName;
     private RegistryConfig registryConfig;
     private ProtocolConfig protocolConfig;
-    public static int PORT = 8092;
+    public static int PORT = 8090;
 
     public static String SERIALIZE_TYPE = "jdk";
     public static String COMPRESS_TYPE = "gzip";
+
+
+
+
 
     public static final IdGenerator ID_GENERATOR = new IdGenerator(1L, 2L);
 
@@ -55,6 +62,8 @@ public class RueRPCBootstrap {
     public static final Map<String, ServiceConfig<?>> SERVICES_LIST = new ConcurrentHashMap<>(16);
 
     public static final Map<InetSocketAddress, Channel> CHANNEL_CACHE = new ConcurrentHashMap<>(16);
+    //treemap有序，用来实现心跳检测缓存以及最短响应时间负载均衡策略
+    public static final TreeMap<Long, Channel> ANSWER_TIME_CHANNEL_CACHE = new TreeMap<>();
 
     //定义全局对外挂起的CompletableFuture
     public static final Map<Long, CompletableFuture<Object>> PENDING_REQUEST = new ConcurrentHashMap<>(128);
@@ -90,7 +99,7 @@ public class RueRPCBootstrap {
     public RueRPCBootstrap registry(RegistryConfig registryConfig) {
         this.registry = registryConfig.getRegistry();
         //todo
-        RueRPCBootstrap.LOAD_BALANCER = new ConsistentHashLoadBalancer();
+        RueRPCBootstrap.LOAD_BALANCER = new MinimumResponseTimeLoadBalancer();
         return this;
     }
 
@@ -178,7 +187,15 @@ public class RueRPCBootstrap {
      * ---------------------------⬇️服务调用方的相关api---------------------------------
      */
 
+    /**
+     * 好像是用来开启服务的todo
+     * @param reference
+     * @return
+     */
     public RueRPCBootstrap reference(ReferenceConfig<?> reference) {
+
+        //开启对这个服务的心跳检测
+        HeartbeatDetector.detectHeartbeat(reference.getInterfaceRef().getName());
         reference.setRegistry(registry);
         return this;
     }

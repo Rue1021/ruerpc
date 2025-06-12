@@ -17,6 +17,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * @author Rue
  * @date 2025/6/11 13:50
+ *
+ * 轮询负载均衡
  */
 @Slf4j
 public class RoundRobinLoadBalancer extends AbstractLoadBalancer {

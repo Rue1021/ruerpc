@@ -85,11 +85,15 @@ public class RueRPCRequestDecoder extends LengthFieldBasedFrameDecoder {
         // 6. 读取请求ID
         long requestId = byteBuf.readLong();
 
+        //请求的时间戳
+        long timeStamp = byteBuf.readLong();
+
         RueRPCRequest rueRPCRequest = RueRPCRequest.builder()
                 .requestType(requestType)
                 .serializeType(serializeType)
                 .compressType(compressType)
                 .requestId(requestId)
+                .timeStamp(timeStamp)
                 .build();
 
         //如果是心跳检测请求，就不需要再读请求体
@@ -102,19 +106,17 @@ public class RueRPCRequestDecoder extends LengthFieldBasedFrameDecoder {
         byte[] bodyBytes = new byte[bodyLength];
         byteBuf.readBytes(bodyBytes);
 
-        //解压缩
-        Compressor compressor = CompressorFactory
-                .getCompressor(compressType)
-                .getCompressor();
-        byte[] deCompressedBody = compressor.deCompress(bodyBytes);
-
-        //9. 拿到序列化器，进行反序列化请求体
-        Serializer serializer = SerializerFactory.getSerializer(serializeType).getSerializer();
-        RequestPayload requestPayload = serializer.deserialize(deCompressedBody, RequestPayload.class);
-
-
-
-        rueRPCRequest.setRequestPayload(requestPayload);
+        if (bodyBytes != null && bodyBytes.length != 0) {
+            //解压缩
+            Compressor compressor = CompressorFactory
+                    .getCompressor(compressType)
+                    .getCompressor();
+            bodyBytes = compressor.deCompress(bodyBytes);
+            //反序列化
+            Serializer serializer = SerializerFactory.getSerializer(serializeType).getSerializer();
+            RequestPayload requestPayload = serializer.deserialize(bodyBytes, RequestPayload.class);
+            rueRPCRequest.setRequestPayload(requestPayload);
+        }
 
         if (log.isDebugEnabled()) {
             log.debug("请求【{}】已经在服务端完成解码工作", requestId);

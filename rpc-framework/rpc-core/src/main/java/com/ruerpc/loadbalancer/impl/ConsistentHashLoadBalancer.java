@@ -16,6 +16,8 @@ import java.util.TreeMap;
 /**
  * @author Rue
  * @date 2025/6/11 16:20
+ *
+ * 一致性hash负载均衡
  */
 @Slf4j
 public class ConsistentHashLoadBalancer extends AbstractLoadBalancer {

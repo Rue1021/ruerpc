@@ -52,26 +52,27 @@ public class RueRPCRequestEncoder extends MessageToByteEncoder<RueRPCRequest> {
         //8字节的请求id
         byteBuf.writeLong(rueRPCRequest.getRequestId());
 
-        //序列化
-        Serializer serializer = SerializerFactory
-                .getSerializer(rueRPCRequest.getSerializeType())
-                .getSerializer();
-        byte[] body = serializer.serialize(rueRPCRequest.getRequestPayload());
+        byteBuf.writeLong(rueRPCRequest.getTimeStamp());
 
-        //压缩
-        Compressor compressor = CompressorFactory
-                .getCompressor(rueRPCRequest.getCompressType())
-                .getCompressor();
-        body = compressor.compress(body);
-
-
-        //写入请求体
-        if (body != null) {
+        byte[] body = null;
+        if (rueRPCRequest.getRequestPayload() != null) {
+            //序列化
+            Serializer serializer = SerializerFactory
+                    .getSerializer(rueRPCRequest.getSerializeType())
+                    .getSerializer();
+            body = serializer.serialize(rueRPCRequest.getRequestPayload());
+            //压缩
+            if (body != null && body.length != 0) {
+                Compressor compressor = CompressorFactory
+                        .getCompressor(rueRPCRequest.getCompressType())
+                        .getCompressor();
+                body = compressor.compress(body);
+            }
+            //写入请求体
             byteBuf.writeBytes(body);
         }
 
         int bodyLength = body == null ? 0 : body.length;
-
 
 
         //重新处理报文总长度

@@ -1,5 +1,6 @@
 package com.ruerpc;
 
+import com.ruerpc.core.HeartbeatDetector;
 import com.ruerpc.discovery.RegistryConfig;
 import lombok.extern.slf4j.Slf4j;
 
@@ -25,6 +26,5 @@ public class ConsumerApplication {
 
         String sayHi = hello.sayHi("ruerpc");
         log.info("sayHi -> {}, port:{}", sayHi, RueRPCBootstrap.PORT);
-
     }
 }

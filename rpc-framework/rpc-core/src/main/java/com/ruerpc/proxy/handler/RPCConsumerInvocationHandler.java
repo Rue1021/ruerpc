@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
+import java.util.Date;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -58,9 +59,10 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
         //创建请求
         RueRPCRequest rueRPCRequest = RueRPCRequest.builder()
                 .requestId(RueRPCBootstrap.ID_GENERATOR.getId())
-                .requestType(RequestType.REQUEST.getId())
                 .compressType(CompressorFactory.getCompressor(RueRPCBootstrap.COMPRESS_TYPE).getCode())
+                .requestType(RequestType.REQUEST.getId())
                 .serializeType(SerializerFactory.getSerializer(RueRPCBootstrap.SERIALIZE_TYPE).getCode())
+                .timeStamp(new Date().getTime())
                 .requestPayload(requestPayload)
                 .build();
         //将请求放入本地线程
@@ -92,7 +94,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
         CompletableFuture<Object> completableFuture = new CompletableFuture<>();
 
         //4.1 将completableFuture暴露出去
-        RueRPCBootstrap.PENDING_REQUEST.put(1L, completableFuture);
+        RueRPCBootstrap.PENDING_REQUEST.put(rueRPCRequest.getRequestId(), completableFuture);
 
         //4.2 writeAndFlush写出一个请求，这个请求的实例会进入pipeline进行一系列出站操作
         channel.writeAndFlush(rueRPCRequest).addListener(

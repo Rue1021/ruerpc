@@ -24,6 +24,8 @@ public class RueRPCResponse {
     //序列化的方式
     private byte serializeType;
 
+    private long timeStamp;
+
     //响应码
     private byte responseCode;
 

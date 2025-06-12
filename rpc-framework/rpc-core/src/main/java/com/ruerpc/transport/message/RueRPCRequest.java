@@ -26,6 +26,8 @@ public class RueRPCRequest {
     //序列化的方式
     private byte serializeType;
 
+    private long timeStamp;
+
     //具体的消息体
     private RequestPayload requestPayload;
 

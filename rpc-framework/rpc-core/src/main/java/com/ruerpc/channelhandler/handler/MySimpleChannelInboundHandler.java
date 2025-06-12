@@ -20,7 +20,8 @@ public class MySimpleChannelInboundHandler extends SimpleChannelInboundHandler<R
         Object returnValue = rueRPCResponse.getBody();
 
         //从全局挂起的请求中寻找与之匹配的待处理的completableFuture
-        CompletableFuture<Object> completableFuture = RueRPCBootstrap.PENDING_REQUEST.get(1L);
+        CompletableFuture<Object> completableFuture = RueRPCBootstrap.PENDING_REQUEST
+                .get(rueRPCResponse.getRequestId());
         completableFuture.complete(returnValue);
     }
 }

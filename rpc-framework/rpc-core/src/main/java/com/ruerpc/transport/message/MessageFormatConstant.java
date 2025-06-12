@@ -13,7 +13,7 @@ public class MessageFormatConstant {
     public static final int VERSION_LENGTH = 1;
 
     //首部信息的长度
-    public static final short HEADER_LENGTH = (byte)(MAGIC.length + 1 + 2 + 4 + 1 + 1 + 1 + 8);
+    public static final short HEADER_LENGTH = (byte)(MAGIC.length + 1 + 2 + 4 + 1 + 1 + 1 + 8 + 8);
     //存放首部长度占用的字节数
     public static final int HEADER_FIELD_LENGTH = 2;
 

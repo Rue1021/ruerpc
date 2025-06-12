@@ -52,21 +52,28 @@ public class RueRPCResponseEncoder extends MessageToByteEncoder<RueRPCResponse> 
         //8字节的请求id
         byteBuf.writeLong(rueRPCResponse.getRequestId());
 
+        //时间戳
+        byteBuf.writeLong(rueRPCResponse.getTimeStamp());
+
         //序列化请求体
-        Serializer serializer = SerializerFactory
-                .getSerializer(rueRPCResponse.getSerializeType()).getSerializer();
-        byte[] body = serializer.serialize(rueRPCResponse.getBody());
-
-        //压缩
-        Compressor compressor = CompressorFactory
-                .getCompressor(rueRPCResponse.getCompressType())
-                .getCompressor();
-        body = compressor.compress(body);
-
-        //写入
-        if (body != null) {
+        byte[] body = null;
+        if (rueRPCResponse.getBody() != null) {
+            Serializer serializer = SerializerFactory
+                    .getSerializer(rueRPCResponse.getSerializeType()).getSerializer();
+            body = serializer.serialize(rueRPCResponse.getBody());
+            //压缩
+            Compressor compressor = CompressorFactory
+                    .getCompressor(rueRPCResponse.getCompressType())
+                    .getCompressor();
+            body = compressor.compress(body);
+            //写入
             byteBuf.writeBytes(body);
         }
+
+//        //写入
+//        if (body != null) {
+//
+//        }
         int bodyLength = body == null ? 0 : body.length;
 
         //重新处理报文总长度

@@ -12,6 +12,7 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
+import java.util.Date;
 
 /**
  * @author Rue
@@ -83,11 +84,15 @@ public class RueRPCResponseDecoder extends LengthFieldBasedFrameDecoder {
         // 6. 读取请求ID
         long requestId = byteBuf.readLong();
 
+        //响应的时间戳
+        long timeStamp = byteBuf.readLong();
+
         RueRPCResponse rueRPCResponse = RueRPCResponse.builder()
                 .responseCode(responseCode)
                 .serializeType(serializeType)
                 .compressType(compressType)
                 .requestId(requestId)
+                .timeStamp(timeStamp)
                 .build();
 
         // 7. 读取响应体
@@ -95,17 +100,19 @@ public class RueRPCResponseDecoder extends LengthFieldBasedFrameDecoder {
         byte[] bodyBytes = new byte[bodyLength];
         byteBuf.readBytes(bodyBytes);
 
-        //8. 解压缩
-        Compressor compressor = CompressorFactory
-                .getCompressor(compressType)
-                .getCompressor();
-        byte[] deCompressedBody = compressor.deCompress(bodyBytes);
-
-        // 9. 反序列化响应体
-        Serializer serializer = SerializerFactory
-                .getSerializer(rueRPCResponse.getSerializeType()).getSerializer();
-        Object body = serializer.deserialize(deCompressedBody, Object.class);
-        rueRPCResponse.setBody(body);
+        byte[] deCompressedBody;
+        if (bodyBytes != null && bodyBytes.length != 0) {
+            //解压缩
+            Compressor compressor = CompressorFactory
+                    .getCompressor(compressType)
+                    .getCompressor();
+            deCompressedBody = compressor.deCompress(bodyBytes);
+            //反序列化
+            Serializer serializer = SerializerFactory
+                    .getSerializer(rueRPCResponse.getSerializeType()).getSerializer();
+            Object body = serializer.deserialize(deCompressedBody, Object.class);
+            rueRPCResponse.setBody(body);
+        }
 
         if (log.isDebugEnabled()) {
             log.debug("响应【{}】已经在调用端完成解码", rueRPCResponse.getRequestId());
