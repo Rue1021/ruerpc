@@ -13,12 +13,11 @@ import io.netty.channel.ChannelFutureListener;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
-import java.util.List;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * @author Rue
@@ -68,42 +67,62 @@ public class HeartbeatDetector {
 
             Map<InetSocketAddress, Channel> cache = RueRPCBootstrap.CHANNEL_CACHE;
             for (Map.Entry<InetSocketAddress, Channel> entry: cache.entrySet()) {
-                Channel channel = entry.getValue();
+                //定义一个重试次数
+                int tryTime = 3;
+                while(tryTime > 0) {
+                    Channel channel = entry.getValue();
 
-                long start = System.currentTimeMillis();
+                    long start = System.currentTimeMillis();
 
-                //构建一个心跳请求
-                RueRPCRequest rueRPCRequest4Heartbeat = RueRPCRequest.builder()
-                        .requestId(RueRPCBootstrap.ID_GENERATOR.getId())
-                        .requestType(RequestType.HEART_BEAT.getId())
-                        .compressType(CompressorFactory.getCompressor(RueRPCBootstrap.COMPRESS_TYPE).getCode())
-                        .serializeType(SerializerFactory.getSerializer(RueRPCBootstrap.SERIALIZE_TYPE).getCode())
-                        .timeStamp(start)
-                        .build();
+                    //构建一个心跳请求
+                    RueRPCRequest rueRPCRequest4Heartbeat = RueRPCRequest.builder()
+                            .requestId(RueRPCBootstrap.ID_GENERATOR.getId())
+                            .requestType(RequestType.HEART_BEAT.getId())
+                            .compressType(CompressorFactory.getCompressor(RueRPCBootstrap.COMPRESS_TYPE).getCode())
+                            .serializeType(SerializerFactory.getSerializer(RueRPCBootstrap.SERIALIZE_TYPE).getCode())
+                            .timeStamp(start)
+                            .build();
 
-                //4. 写出报文
-                CompletableFuture<Object> completableFuture = new CompletableFuture<>();
-                //4.1 将completableFuture暴露出去
-                RueRPCBootstrap.PENDING_REQUEST.put(rueRPCRequest4Heartbeat.getRequestId(), completableFuture);
-                //4.2 writeAndFlush写出一个请求，这个请求的实例会进入pipeline进行一系列出站操作
-                channel.writeAndFlush(rueRPCRequest4Heartbeat).addListener(
-                        (ChannelFutureListener) promise -> {
-                            if (!promise.isSuccess()) {
-                                completableFuture.completeExceptionally(promise.cause());
+                    //4. 写出报文
+                    CompletableFuture<Object> completableFuture = new CompletableFuture<>();
+                    //4.1 将completableFuture暴露出去
+                    RueRPCBootstrap.PENDING_REQUEST.put(rueRPCRequest4Heartbeat.getRequestId(), completableFuture);
+                    //4.2 writeAndFlush写出一个请求，这个请求的实例会进入pipeline进行一系列出站操作
+                    channel.writeAndFlush(rueRPCRequest4Heartbeat).addListener(
+                            (ChannelFutureListener) promise -> {
+                                if (!promise.isSuccess()) {
+                                    completableFuture.completeExceptionally(promise.cause());
+                                }
                             }
-                        }
-                );
+                    );
 
-                Long endTime;
-                try {
-                    completableFuture.get();
-                    endTime = System.currentTimeMillis();
-                } catch (ExecutionException | InterruptedException e) {
-                    throw new RuntimeException(e);
+                    Long endTime = 0L;
+                    try {
+                        //只阻塞等待1 s
+                        completableFuture.get(1, TimeUnit.SECONDS);
+                        endTime = System.currentTimeMillis();
+                    } catch (ExecutionException | InterruptedException | TimeoutException e) {
+                        tryTime--;
+                        log.error("和地址为【{}】的主机的连接发生异常, 正在进行第【{}】次重试",
+                                channel.remoteAddress(),
+                                3 - tryTime);
+                        //重试次数用完后还未连接上，就将失效的地址移出服务列表
+                        if (tryTime == 0) {
+                            RueRPCBootstrap.CHANNEL_CACHE.remove(entry.getKey());
+                        }
+                        //设置两次重试之间的间隔
+                        try {
+                            Thread.sleep(10 * (new Random().nextInt(5)));
+                        } catch (InterruptedException ex) {
+                            throw new RuntimeException(ex);
+                        }
+                        continue;
+                    }
+                    Long time = endTime - start;
+                    RueRPCBootstrap.ANSWER_TIME_CHANNEL_CACHE.put(time, channel);
+                    log.debug("心跳检测，【{}】服务器的响应时间是【{}】", entry.getKey(), time);
+                    break;
                 }
-                Long time = endTime - start;
-                RueRPCBootstrap.ANSWER_TIME_CHANNEL_CACHE.put(time, channel);
-                log.debug("心跳检测，【{}】服务器的响应时间是【{}】", entry.getKey(), time);
             }
             log.info("本次心跳检测生成的treemap:");
             for (Map.Entry<Long, Channel> entry: RueRPCBootstrap.ANSWER_TIME_CHANNEL_CACHE.entrySet()) {

@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Rue
  * @date 2025/6/12 19:58
  *
- * 最小响应时间负载均衡
+ * 最短响应时间的负载均衡策略
  */
 @Slf4j
 public class MinimumResponseTimeLoadBalancer extends AbstractLoadBalancer {
@@ -32,6 +32,11 @@ public class MinimumResponseTimeLoadBalancer extends AbstractLoadBalancer {
         @Override
         public InetSocketAddress getNext() {
             Map.Entry<Long, Channel> longChannelEntry = RueRPCBootstrap.ANSWER_TIME_CHANNEL_CACHE.firstEntry();
+            if (longChannelEntry != null) {
+                if (log.isDebugEnabled()) {
+                    log.debug("选取了响应时间为【{}】ms的服务节点", longChannelEntry.getKey());
+                }
+            }
             if (longChannelEntry != null) {
                 return (InetSocketAddress) longChannelEntry.getValue().remoteAddress();
             }

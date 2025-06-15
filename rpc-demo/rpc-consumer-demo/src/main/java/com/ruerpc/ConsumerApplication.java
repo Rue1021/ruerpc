@@ -24,7 +24,10 @@ public class ConsumerApplication {
 
         Hello hello = reference.get();
 
-        String sayHi = hello.sayHi("ruerpc");
-        log.info("sayHi -> {}, port:{}", sayHi, RueRPCBootstrap.PORT);
+        //测试
+        for (int i = 0; i < 10; i++) {
+            String sayHi = hello.sayHi("ruerpc");
+            log.info("sayHi -> {}, port:{}", sayHi, RueRPCBootstrap.PORT);
+        }
     }
 }
