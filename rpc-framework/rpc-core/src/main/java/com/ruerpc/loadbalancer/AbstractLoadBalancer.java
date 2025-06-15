@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Rue
  * @date 2025/6/11 15:22
  *
- * 模版方法设计模式
+ * 模版方法设计模式, 并在抽象类实现一个reLoadBalance方法
  */
 public abstract class AbstractLoadBalancer implements LoadBalancer {
 
@@ -38,6 +38,12 @@ public abstract class AbstractLoadBalancer implements LoadBalancer {
         cache.put(serviceName, serviceSelector);
 
         return serviceSelector.getNext();
+    }
+
+    @Override
+    public synchronized void reLoadBalance(String serviceName, List<InetSocketAddress> addresses) {
+        //根据新的服务列表生成Selector
+        cache.put(serviceName, getServiceSelector(addresses));
     }
 
     /**

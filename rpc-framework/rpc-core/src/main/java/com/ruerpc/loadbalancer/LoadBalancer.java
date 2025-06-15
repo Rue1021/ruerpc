@@ -1,6 +1,8 @@
 package com.ruerpc.loadbalancer;
 
 import java.net.InetSocketAddress;
+import java.nio.channels.Channel;
+import java.util.List;
 
 /**
  * @author Rue
@@ -17,4 +19,11 @@ public interface LoadBalancer {
      * @return
      */
     InetSocketAddress selectServiceAddress(String serviceName);
+
+    /**
+     * 感知到节点动态上下线时，需要重新进行负载均衡
+     * @param serviceName 服务名称
+     * @param addresses 重新拉取的服务列表
+     */
+    void reLoadBalance(String serviceName, List<InetSocketAddress> addresses);
 }

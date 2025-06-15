@@ -40,7 +40,7 @@ public class RueRPCBootstrap {
     private String appName;
     private RegistryConfig registryConfig;
     private ProtocolConfig protocolConfig;
-    public static int PORT = 8093;
+    public static int PORT = 8090;
 
     public static String SERIALIZE_TYPE = "jdk";
     public static String COMPRESS_TYPE = "gzip";

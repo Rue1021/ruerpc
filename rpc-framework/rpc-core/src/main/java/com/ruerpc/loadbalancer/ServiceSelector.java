@@ -16,6 +16,4 @@ public interface ServiceSelector {
      */
     InetSocketAddress getNext();
 
-    //todo 服务动态上下线需要进行
-    void reBalance();
 }

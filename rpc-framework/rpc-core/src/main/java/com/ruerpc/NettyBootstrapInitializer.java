@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * @author Rue
  * @date 2025/5/23 15:01
+ *
  * 提供bootstrap单例
  */
 @Slf4j

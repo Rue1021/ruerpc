@@ -64,10 +64,6 @@ public class ConsistentHashLoadBalancer extends AbstractLoadBalancer {
             return hashCircle.get(hash);
         }
 
-        @Override
-        public void reBalance() {
-
-        }
 
         /**
          * 将每个节点挂载到hash还上

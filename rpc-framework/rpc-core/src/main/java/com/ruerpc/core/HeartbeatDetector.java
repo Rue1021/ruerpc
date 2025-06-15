@@ -124,7 +124,7 @@ public class HeartbeatDetector {
                     break;
                 }
             }
-            log.info("本次心跳检测生成的treemap:");
+            log.info("--------    -------本次心跳检测生成的treemap:-------------------");
             for (Map.Entry<Long, Channel> entry: RueRPCBootstrap.ANSWER_TIME_CHANNEL_CACHE.entrySet()) {
                 if (log.isDebugEnabled()) {
                     log.debug("-----[key]: {}, [value]: {}-----", entry.getKey(), entry.getValue());
