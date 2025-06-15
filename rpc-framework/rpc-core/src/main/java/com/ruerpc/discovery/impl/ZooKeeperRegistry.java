@@ -50,7 +50,8 @@ public class ZooKeeperRegistry extends AbstractRegistry {
         //ip通常需要一个局域网ip
         //服务提供方的端口一般自己设定
         //TODO后续处理端口
-        String node = parentNode + "/" + NetUtils.getIp() + ":" + RueRPCBootstrap.PORT;
+        String node = parentNode + "/" + NetUtils.getIp() + ":" + RueRPCBootstrap.getInstance()
+                .getConfiguration().getPort();
         if (!ZooKeeperUtils.exists(zooKeeper, node, null)) {
             ZooKeeperNode zooKeeperNode = new ZooKeeperNode(node, null);
             ZooKeeperUtils.createNode(zooKeeper,zooKeeperNode, null, CreateMode.EPHEMERAL);

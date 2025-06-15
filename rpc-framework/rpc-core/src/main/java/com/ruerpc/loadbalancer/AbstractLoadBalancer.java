@@ -32,7 +32,8 @@ public abstract class AbstractLoadBalancer implements LoadBalancer {
             return cachedServiceSelector.getNext();
         }
 
-        List<InetSocketAddress> serviceList = RueRPCBootstrap.getInstance().getRegistry().lookup(serviceName);
+        List<InetSocketAddress> serviceList = RueRPCBootstrap.getInstance()
+                .getConfiguration().getRegistryConfig().getRegistry().lookup(serviceName);
         ServiceSelector serviceSelector = getServiceSelector(serviceList);
         //放入缓存
         cache.put(serviceName, serviceSelector);

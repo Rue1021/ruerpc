@@ -58,10 +58,12 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                 .build();
         //创建请求
         RueRPCRequest rueRPCRequest = RueRPCRequest.builder()
-                .requestId(RueRPCBootstrap.ID_GENERATOR.getId())
-                .compressType(CompressorFactory.getCompressor(RueRPCBootstrap.COMPRESS_TYPE).getCode())
+                .requestId(RueRPCBootstrap.getInstance().getConfiguration().getIdGenerator().getId())
+                .compressType(CompressorFactory.getCompressor(RueRPCBootstrap.getInstance()
+                        .getConfiguration().getCompressType()).getCode())
                 .requestType(RequestType.REQUEST.getId())
-                .serializeType(SerializerFactory.getSerializer(RueRPCBootstrap.SERIALIZE_TYPE).getCode())
+                .serializeType(SerializerFactory.getSerializer(RueRPCBootstrap.getInstance()
+                        .getConfiguration().getSerializeType()).getCode())
                 .timeStamp(new Date().getTime())
                 .requestPayload(requestPayload)
                 .build();
@@ -73,7 +75,8 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
          */
 
         //1. 传入服务的名字，返回ip+端口
-        InetSocketAddress address = RueRPCBootstrap.LOAD_BALANCER.selectServiceAddress(interfaceRef.getName());
+        InetSocketAddress address = RueRPCBootstrap.getInstance().getConfiguration()
+                .getLoadBalancer().selectServiceAddress(interfaceRef.getName());
         if (log.isDebugEnabled()) {
             log.debug("服务调用方，发现了服务【{}】的可用主机【{}】", interfaceRef.getName(), address);
         }

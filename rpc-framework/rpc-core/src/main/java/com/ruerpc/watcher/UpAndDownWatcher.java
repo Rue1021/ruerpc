@@ -26,7 +26,8 @@ public class UpAndDownWatcher implements Watcher {
                 log.debug("检测到【{}】服务下有有节点上下线，将重新拉取服务列表", watchedEvent.getPath());
             }
             //拿到注册中心
-            Registry registry = RueRPCBootstrap.getInstance().getRegistry();
+            Registry registry = RueRPCBootstrap.getInstance()
+                    .getConfiguration().getRegistryConfig().getRegistry();
             String serviceName = getServiceName(watchedEvent.getPath());
             List<InetSocketAddress> addresses = registry.lookup(serviceName);
             //处理新增节点：根据地址建立连接并缓存
@@ -48,7 +49,7 @@ public class UpAndDownWatcher implements Watcher {
             }
 
             //拿到负载均衡器
-            LoadBalancer loadBalancer = RueRPCBootstrap.LOAD_BALANCER;
+            LoadBalancer loadBalancer = RueRPCBootstrap.getInstance().getConfiguration().getLoadBalancer();
             loadBalancer.reLoadBalance(serviceName, addresses);
         }
     }

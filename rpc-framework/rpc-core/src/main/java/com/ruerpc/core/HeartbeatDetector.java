@@ -28,7 +28,7 @@ public class HeartbeatDetector {
 
     public static void detectHeartbeat(String serviceName) {
         //拉取服务
-        Registry registry = RueRPCBootstrap.getInstance().getRegistry();
+        Registry registry = RueRPCBootstrap.getInstance().getConfiguration().getRegistryConfig().getRegistry();
         List<InetSocketAddress> addresses = registry.lookup(serviceName);
 
         //建立连接
@@ -76,10 +76,13 @@ public class HeartbeatDetector {
 
                     //构建一个心跳请求
                     RueRPCRequest rueRPCRequest4Heartbeat = RueRPCRequest.builder()
-                            .requestId(RueRPCBootstrap.ID_GENERATOR.getId())
+                            .requestId(RueRPCBootstrap.getInstance()
+                                    .getConfiguration().getIdGenerator().getId())
                             .requestType(RequestType.HEART_BEAT.getId())
-                            .compressType(CompressorFactory.getCompressor(RueRPCBootstrap.COMPRESS_TYPE).getCode())
-                            .serializeType(SerializerFactory.getSerializer(RueRPCBootstrap.SERIALIZE_TYPE).getCode())
+                            .compressType(CompressorFactory.getCompressor(RueRPCBootstrap.getInstance()
+                                    .getConfiguration().getSerializeType()).getCode())
+                            .serializeType(SerializerFactory.getSerializer(RueRPCBootstrap.getInstance()
+                                    .getConfiguration().getCompressType()).getCode())
                             .timeStamp(start)
                             .build();
 

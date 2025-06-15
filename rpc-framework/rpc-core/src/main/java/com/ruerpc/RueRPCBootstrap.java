@@ -40,6 +40,8 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * @author Rue
  * @date 2025/5/20 12:28
+ *
+ * 启动引导类
  */
 @Slf4j
 public class RueRPCBootstrap {
@@ -47,24 +49,11 @@ public class RueRPCBootstrap {
     //RueRPCBootstrap是个单例，即希望每个应用程序只有一个实例，用饿汉式写
     private static final RueRPCBootstrap rueRPCBootstrap = new RueRPCBootstrap();
 
-    private String appName;
-    private RegistryConfig registryConfig;
-    private ProtocolConfig protocolConfig;
-    public static int PORT = 8090;
+    //全局的配置中心
+    private Configuration configuration;
 
-    public static String SERIALIZE_TYPE = "jdk";
-    public static String COMPRESS_TYPE = "gzip";
-
-
-
-    public static final IdGenerator ID_GENERATOR = new IdGenerator(1L, 2L);
-
-
+    //用当前线程保存request常量
     public static final ThreadLocal<RueRPCRequest> REQUEST_THREAD_LOCAL = new ThreadLocal<>();
-
-    //注册中心
-    private Registry registry;
-    public static LoadBalancer LOAD_BALANCER;
 
     //维护已经发布并暴露的服务列表 key -> interface的全限定名 value -> ServiceConfig
     public static final Map<String, ServiceConfig<?>> SERVICES_LIST = new ConcurrentHashMap<>(16);
@@ -76,14 +65,11 @@ public class RueRPCBootstrap {
     //定义全局对外挂起的CompletableFuture
     public static final Map<Long, CompletableFuture<Object>> PENDING_REQUEST = new ConcurrentHashMap<>(128);
 
-    //维护一个zookeeper实例
-    //private ZooKeeper zooKeeper;
 
-    //没有Slf4j注解时需要用这一句
-    //private static final Logger logger = LoggerFactory.getLogger(RueRPCBootstrap.class);
-
-    private RueRPCBootstrap() {}
-
+    private RueRPCBootstrap() {
+        //构造一个上下文
+        configuration = new Configuration();
+    }
 
     public static RueRPCBootstrap getInstance() {
         return rueRPCBootstrap;
@@ -95,19 +81,27 @@ public class RueRPCBootstrap {
      * @return this
      */
     public RueRPCBootstrap application(String appName) {
-        this.appName = appName;
+        configuration.setAppName(appName);
         return this;
     }
 
     /**
-     * 用来配置一个注册中心
+     * 配置一个注册中心
      * @param registryConfig 注册中心
      * @return this当前实例
      */
     public RueRPCBootstrap registry(RegistryConfig registryConfig) {
-        this.registry = registryConfig.getRegistry();
-        //todo
-        RueRPCBootstrap.LOAD_BALANCER = new MinimumResponseTimeLoadBalancer();
+        configuration.setRegistryConfig(registryConfig);
+        return this;
+    }
+
+    /**
+     * 配置负载均衡策略
+     * @param loadBalancer 负载均衡器
+     * @return this当前实例
+     */
+    public RueRPCBootstrap loadBalancer(LoadBalancer loadBalancer) {
+        configuration.setLoadBalancer(loadBalancer);
         return this;
     }
 
@@ -117,13 +111,12 @@ public class RueRPCBootstrap {
      * @return
      */
     public RueRPCBootstrap protocol(ProtocolConfig protocolConfig) {
-        this.protocolConfig = protocolConfig;
+        configuration.setProtocolConfig(protocolConfig);
         if (log.isDebugEnabled()) {
             log.debug("当前服务使用了{}协议进行序列化", protocolConfig);
         }
         return this;
     }
-
 
 
     /**
@@ -137,7 +130,7 @@ public class RueRPCBootstrap {
      */
     public RueRPCBootstrap publish(ServiceConfig<?> service) {
         //抽象了注册中心，使用注册中心的一个实例完成注册
-        registry.register(service);
+        configuration.getRegistryConfig().getRegistry().register(service);
         SERVICES_LIST.put(service.getInterface().getName(), service);
         return this;
     }
@@ -176,7 +169,7 @@ public class RueRPCBootstrap {
                         }
                     });
             //绑定端口
-            ChannelFuture channelFuture = serverBootstrap.bind(PORT).sync();
+            ChannelFuture channelFuture = serverBootstrap.bind(configuration.getPort()).sync();
 
             channelFuture.channel().closeFuture().sync();
         } catch (InterruptedException e) {
@@ -196,15 +189,14 @@ public class RueRPCBootstrap {
      */
 
     /**
-     * 好像是用来开启服务的todo
+     * 好像是用来开启服务的
      * @param reference
      * @return
      */
     public RueRPCBootstrap reference(ReferenceConfig<?> reference) {
-
         //开启对这个服务的心跳检测
         HeartbeatDetector.detectHeartbeat(reference.getInterfaceRef().getName());
-        reference.setRegistry(registry);
+        reference.setRegistry(configuration.getRegistryConfig().getRegistry());
         return this;
     }
 
@@ -214,7 +206,7 @@ public class RueRPCBootstrap {
      * @return
      */
     public RueRPCBootstrap serialize(String serializeType) {
-        SERIALIZE_TYPE = serializeType;
+        configuration.setSerializeType(serializeType);
         if (log.isDebugEnabled()) {
             log.debug("配置了序列化方式【{}】", serializeType);
         }
@@ -227,15 +219,11 @@ public class RueRPCBootstrap {
      * @return
      */
     public RueRPCBootstrap compress(String compressType) {
-        COMPRESS_TYPE = compressType;
+        configuration.setCompressType(compressType);
         if (log.isDebugEnabled()) {
             log.debug("配置了压缩算法【{}】", compressType);
         }
         return this;
-    }
-
-    public Registry getRegistry() {
-        return registry;
     }
 
     public RueRPCBootstrap scan(String packageName) {
@@ -339,8 +327,7 @@ public class RueRPCBootstrap {
     }
 
 
-    public static void main(String[] args) {
-        List<String> allClassNames = RueRPCBootstrap.getInstance().getAllClassName("com.ruerpc");
-        System.out.println(allClassNames);
+    public Configuration getConfiguration() {
+        return configuration;
     }
 }
