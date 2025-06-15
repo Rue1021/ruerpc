@@ -1,5 +1,6 @@
 package com.ruerpc;
 
+import com.ruerpc.annotation.RueRPCApi;
 import com.ruerpc.channelhandler.handler.MethodCallHandler;
 import com.ruerpc.channelhandler.handler.RueRPCRequestDecoder;
 import com.ruerpc.channelhandler.handler.RueRPCResponseEncoder;
@@ -19,7 +20,16 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LoggingHandler;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.File;
+import java.io.FileFilter;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -226,5 +236,111 @@ public class RueRPCBootstrap {
 
     public Registry getRegistry() {
         return registry;
+    }
+
+    public RueRPCBootstrap scan(String packageName) {
+        //扫描指定包下所有.class文件并提取类的全限定名
+        List<String> classNames = getAllClassName(packageName);
+        //通过反射获取它的接口，构建具体实现
+        List<? extends Class<?>> classes = classNames.stream()
+                .map(className -> {
+                    try {
+                        return Class.forName(className);
+                    } catch (ClassNotFoundException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .filter(clazz -> clazz.getAnnotation(RueRPCApi.class) != null)
+                .toList();
+        //针对每一个扫描到的class都进行一次发布
+        for (Class<?> clazz : classes) {
+            //获取接口
+            Class<?>[] interfaces = clazz.getInterfaces();
+            Object instance = null;
+            try {
+                instance = clazz.getConstructor().newInstance();
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
+                     NoSuchMethodException e) {
+                throw new RuntimeException(e);
+            }
+            for (Class<?> anInterface : interfaces) {
+                ServiceConfig<?> serviceConfig = new ServiceConfig<>();
+                serviceConfig.setInterface(anInterface);
+                //setRef就是实例
+                serviceConfig.setRef(instance);
+                //发布服务
+                publish(serviceConfig);
+                if (log.isDebugEnabled()) {
+                    log.debug("------>> 已经通过包扫描，将服务【{}】发布", anInterface);
+                }
+            }
+        }
+
+        return this;
+    }
+
+    private List<String> getAllClassName(String packageName) {
+        String basePath = packageName.replace(".", "/");
+        URL url = ClassLoader.getSystemClassLoader().getResource(basePath);
+        if (url == null) {
+            throw new RuntimeException("包扫描时，发现路径不存在");
+        }
+        String absolutePath = url.getPath();
+        List<String> classNames = new ArrayList<>();
+        //classNames = recursionFile(absolutePath, classNames, basePath);
+        Path start = Paths.get(absolutePath);
+        try {
+            Files.walk(start)
+                    .filter(p -> p.toString().endsWith(".class"))
+                    .forEach(p -> {
+                        String className = getClassNameByAbsolutePath(p.toString(), basePath);
+                        classNames.add(className);
+                    });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return classNames;
+    }
+
+
+
+//    private List<String> recursionFile(String absolutePath, List<String> classNames, String basePath) {
+//        //获取文件
+//        File file = new File(absolutePath);
+//
+//        if (file.isDirectory()) {
+//            File[] childFiles = file.listFiles(pathname -> pathname.isDirectory() ||
+//                    pathname.getPath().contains(".class"));
+//            if (childFiles == null || childFiles.length == 0) {
+//                return classNames;
+//            }
+//            for (File childFile : childFiles) {
+//                if (childFile.isDirectory()) {
+//                    //递归调用
+//                    recursionFile(childFile.getAbsolutePath(), classNames, basePath);
+//                } else {
+//                    String className = getClassNameByAbsolutePath(childFile.getAbsolutePath(), basePath);
+//                    classNames.add(className);
+//                }
+//            }
+//        } else {
+//            String className = getClassNameByAbsolutePath(absolutePath, basePath);
+//            classNames.add(className);
+//        }
+//        return classNames;
+//    }
+
+    private String getClassNameByAbsolutePath(String absolutePath, String basePath) {
+        String fileName = absolutePath
+                .substring(absolutePath.indexOf(basePath))
+                .replace("/", ".");
+        fileName = fileName.substring(0, fileName.indexOf(".class"));
+        return fileName;
+    }
+
+
+    public static void main(String[] args) {
+        List<String> allClassNames = RueRPCBootstrap.getInstance().getAllClassName("com.ruerpc");
+        System.out.println(allClassNames);
     }
 }

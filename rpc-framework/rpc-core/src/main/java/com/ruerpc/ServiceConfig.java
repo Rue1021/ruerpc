@@ -6,14 +6,14 @@ package com.ruerpc;
  */
 public class ServiceConfig<T> {
 
-    private Class<T> interfaceProvider;
+    private Class<?> interfaceProvider;
     private Object ref; //具体的引用的实现
 
-    public Class<T> getInterface() {
+    public Class<?> getInterface() {
         return interfaceProvider;
     }
 
-    public void setInterface(Class<T> interfaceProvider) {
+    public void setInterface(Class<?> interfaceProvider) {
         this.interfaceProvider = interfaceProvider;
     }
 

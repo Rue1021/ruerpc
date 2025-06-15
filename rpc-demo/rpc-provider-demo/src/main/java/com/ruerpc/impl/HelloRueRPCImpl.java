@@ -1,6 +1,7 @@
 package com.ruerpc.impl;
 
 import com.ruerpc.Hello;
+import com.ruerpc.HelloRueRPC;
 import com.ruerpc.annotation.RueRPCApi;
 
 /**
@@ -8,7 +9,7 @@ import com.ruerpc.annotation.RueRPCApi;
  * @date 2025/5/19 21:35
  */
 @RueRPCApi
-public class HelloImpl implements Hello {
+public class HelloRueRPCImpl implements HelloRueRPC {
 
     @Override
     public String sayHi(String msg) {

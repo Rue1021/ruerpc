@@ -19,7 +19,10 @@ public class ProviderApplication {
                 .application("first-ruerpc-provider")
                 .registry(new RegistryConfig("zookeeper://127.0.0.1:2181"))
                 .protocol(new ProtocolConfig("jdk"))
-                .publish(service)
+                //发布服务
+                //.publish(service)
+                //扫包批量发布
+                .scan("com.ruerpc")
                 .start();
     }
 }
