@@ -226,6 +226,11 @@ public class RueRPCBootstrap {
         return this;
     }
 
+    /**
+     * 扫描包，进行批量注册
+     * @param packageName 包名
+     * @return this本身
+     */
     public RueRPCBootstrap scan(String packageName) {
         //扫描指定包下所有.class文件并提取类的全限定名
         List<String> classNames = getAllClassName(packageName);
