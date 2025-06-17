@@ -1,5 +1,7 @@
 package com.ruerpc.spi;
 
+import com.ruerpc.config.ObjectWrapper;
+import com.ruerpc.exceptions.SpiException;
 import com.ruerpc.loadbalancer.LoadBalancer;
 import lombok.extern.slf4j.Slf4j;
 
@@ -25,7 +27,7 @@ public class SpiHandler {
     private static final Map<String, List<String>> SPI_CONTENT = new ConcurrentHashMap<>(16);
 
     //缓存每一个接口对应实现的实例，我们要把这些实例构造出来
-    private static final Map<Class<?>, List<Object>> SPI_IMPLEMENT = new ConcurrentHashMap<>(32);
+    private static final Map<Class<?>, List<ObjectWrapper<?>>> SPI_IMPLEMENT = new ConcurrentHashMap<>(32);
 
     //加载当前类后需要将spi信息进行保存，避免运行时频繁执行IO
     static {
@@ -54,25 +56,25 @@ public class SpiHandler {
      * @return      实现类的实例
      * @param <T>
      */
-    public static <T> T get(Class<T> clazz) {
+    public static <T> ObjectWrapper<T> get(Class<T> clazz) {
 
         //1. 优先走缓存
-        List<Object> impls = SPI_IMPLEMENT.get(clazz);
-        if (impls != null && impls.size() > 0) {
-            return (T)impls.get(0);
+        List<ObjectWrapper<?>> objectWrappers = SPI_IMPLEMENT.get(clazz);
+        if (objectWrappers != null && objectWrappers.size() > 0) {
+            return (ObjectWrapper<T>)objectWrappers.get(0);
         }
 
         //2. 构建缓存
         buildCache(clazz);
 
-        List<Object> objects = SPI_IMPLEMENT.get(clazz);
-        if (objects == null || objects.size() == 0) {
+        List<ObjectWrapper<?>> result = SPI_IMPLEMENT.get(clazz);
+        if (result == null || result.size() == 0) {
             log.error("当前接口没有spi配置");
             return null;
         }
 
         //3. 再次尝试获取
-        return (T)SPI_IMPLEMENT.get(clazz).get(0);
+        return (ObjectWrapper<T>)SPI_IMPLEMENT.get(clazz).get(0);
     }
 
     /**
@@ -81,17 +83,23 @@ public class SpiHandler {
      * @return      实现类的实例集合
      * @param <T>
      */
-    public static <T> List<T> getList(Class<T> clazz) {
+    public synchronized static <T> List<ObjectWrapper<T>> getList(Class<T> clazz) {
 
         //1. 优先走缓存
-        List<T> impls = (List<T>) SPI_IMPLEMENT.get(clazz);
-        if (impls != null && impls.size() > 0) {
-            return impls;
+        List<ObjectWrapper<?>> objectWrappers = SPI_IMPLEMENT.get(clazz);
+        if (objectWrappers != null && objectWrappers.size() > 0) {
+            return objectWrappers.stream().map(wrapper -> (ObjectWrapper<T>)wrapper).toList();
         }
 
+        //2. 缓存中没有，就去构建缓存
         buildCache(clazz);
 
-        return (List<T>) SPI_IMPLEMENT.get(clazz);
+        //3. 构建好缓存后尝试查找
+        objectWrappers = SPI_IMPLEMENT.get(clazz);
+        if (objectWrappers != null && objectWrappers.size() > 0) {
+            return objectWrappers.stream().map(wrapper -> (ObjectWrapper<T>)wrapper).toList();
+        }
+        return new ArrayList<>();
     }
 
     /**
@@ -108,12 +116,21 @@ public class SpiHandler {
         }
 
         //2. 实例化所有的实现
-        List<Object> implInstances = new ArrayList<>();
+        List<ObjectWrapper<?>> implInstances = new ArrayList<>();
         for (String implName : implNames) {
             try {
-                Class<?> aClass = Class.forName(implName);
+                //首先进行分割
+                String[] codeAndTypeAndName = implName.split("-");
+                if (codeAndTypeAndName.length != 3) {
+                    throw new SpiException("illegal spi input format");
+                }
+                byte code = Byte.valueOf(codeAndTypeAndName[0]);
+                String type = codeAndTypeAndName[1];
+                String implementName = codeAndTypeAndName[2];
+                Class<?> aClass = Class.forName(implementName);
                 Object implInstance = aClass.getConstructor().newInstance();
-                implInstances.add(implInstance);
+                ObjectWrapper<?> objectWrapper = new ObjectWrapper<>(code, type, implInstance);
+                implInstances.add(objectWrapper);
             } catch (ClassNotFoundException | InvocationTargetException | InstantiationException |
                      IllegalAccessException | NoSuchMethodException e) {
                 log.error("实例化【{}】的实现时发生了异常", implName, e);

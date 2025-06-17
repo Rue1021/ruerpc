@@ -3,9 +3,11 @@ package com.ruerpc.config;
 import com.ruerpc.IdGenerator;
 import com.ruerpc.ProtocolConfig;
 import com.ruerpc.compress.Compressor;
+import com.ruerpc.compress.CompressorFactory;
 import com.ruerpc.discovery.RegistryConfig;
 import com.ruerpc.loadbalancer.LoadBalancer;
 import com.ruerpc.serialize.Serializer;
+import com.ruerpc.serialize.SerializerFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -18,6 +20,7 @@ import javax.xml.xpath.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Objects;
 
 /**
  * @author Rue
@@ -55,12 +58,18 @@ public class XmlResolver {
 
             configuration.setRegistryConfig(resolveRegistryConfig(doc, xPath));
 
+            //处理使用的压缩方式和序列化方式
             configuration.setCompressType(resolveCompressType(doc, xPath));
-            configuration.setCompressor(resolveCompressor(doc, xPath));
-
             configuration.setSerializeType(resolveSerializeType(doc,xPath));
-            configuration.setSerializer(resolveSerializer(doc, xPath));
-            configuration.setProtocolConfig(new ProtocolConfig(configuration.getSerializeType()));
+
+            //配置新的压缩方式，纳入工厂
+            ObjectWrapper<Compressor> compressorObjectWrapper = resolveCompressor(doc, xPath);
+            CompressorFactory.addCompressor(compressorObjectWrapper);
+
+            //配置新的序列化方式，纳入工厂
+            ObjectWrapper<Serializer> serializerObjectWrapper = resolveSerializer(doc, xPath);
+            SerializerFactory.addSerializer(serializerObjectWrapper);
+            //configuration.setProtocolConfig(new ProtocolConfig(configuration.getSerializeType()));
 
             configuration.setLoadBalancer(resolveLoadBalancer(doc, xPath));
 
@@ -131,9 +140,13 @@ public class XmlResolver {
         //return parseString(doc, xPath, expression);
     }
 
-    private Compressor resolveCompressor(Document doc, XPath xPath) {
+    private ObjectWrapper<Compressor> resolveCompressor(Document doc, XPath xPath) {
         String expression = "/configuration/compressor";
-        return parseObject(doc, xPath, expression, null);
+        Compressor compressor = parseObject(doc, xPath, expression, null);
+        byte code = Byte.parseByte(Objects
+                .requireNonNull(parseString(doc, xPath, expression, "code")));
+        String name = parseString(doc, xPath, expression, "name");
+        return new ObjectWrapper<>(code, name, compressor);
     }
 
     private String resolveSerializeType(Document doc, XPath xPath) {
@@ -141,9 +154,13 @@ public class XmlResolver {
         return parseString(doc, xPath, expression, "type");
     }
 
-    private Serializer resolveSerializer(Document doc, XPath xPath) {
+    private ObjectWrapper<Serializer> resolveSerializer(Document doc, XPath xPath) {
         String expression = "/configuration/serializer";
-        return parseObject(doc, xPath, expression, null);
+        Serializer serializer = parseObject(doc, xPath, expression, null);
+        byte code = Byte.parseByte(Objects
+                .requireNonNull(parseString(doc, xPath, expression, "code")));
+        String name = parseString(doc, xPath, expression, "name");
+        return new ObjectWrapper<>(code, name, serializer);
     }
 
 

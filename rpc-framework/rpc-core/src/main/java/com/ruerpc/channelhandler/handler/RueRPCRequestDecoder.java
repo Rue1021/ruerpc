@@ -110,10 +110,10 @@ public class RueRPCRequestDecoder extends LengthFieldBasedFrameDecoder {
             //解压缩
             Compressor compressor = CompressorFactory
                     .getCompressor(compressType)
-                    .getCompressor();
+                    .getImpl();
             bodyBytes = compressor.deCompress(bodyBytes);
             //反序列化
-            Serializer serializer = SerializerFactory.getSerializer(serializeType).getSerializer();
+            Serializer serializer = SerializerFactory.getSerializer(serializeType).getImpl();
             RequestPayload requestPayload = serializer.deserialize(bodyBytes, RequestPayload.class);
             rueRPCRequest.setRequestPayload(requestPayload);
         }

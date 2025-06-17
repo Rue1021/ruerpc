@@ -59,13 +59,13 @@ public class RueRPCRequestEncoder extends MessageToByteEncoder<RueRPCRequest> {
             //序列化
             Serializer serializer = SerializerFactory
                     .getSerializer(rueRPCRequest.getSerializeType())
-                    .getSerializer();
+                    .getImpl();
             body = serializer.serialize(rueRPCRequest.getRequestPayload());
             //压缩
             if (body != null && body.length != 0) {
                 Compressor compressor = CompressorFactory
                         .getCompressor(rueRPCRequest.getCompressType())
-                        .getCompressor();
+                        .getImpl();
                 body = compressor.compress(body);
             }
             //写入请求体

@@ -1,10 +1,14 @@
 package com.ruerpc.config;
 
 import com.ruerpc.compress.Compressor;
+import com.ruerpc.compress.CompressorFactory;
 import com.ruerpc.loadbalancer.LoadBalancer;
 import com.ruerpc.serialize.Serializer;
+import com.ruerpc.serialize.SerializerFactory;
 import com.ruerpc.spi.SpiHandler;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.List;
 
 /**
  * @author Rue
@@ -19,19 +23,19 @@ public class SpiResolver {
      */
     public void loadFromSpi(Configuration configuration) {
 
-        LoadBalancer loadBalancer = SpiHandler.get(LoadBalancer.class);
-        if (loadBalancer != null) {
-            configuration.setLoadBalancer(loadBalancer);
+        List<ObjectWrapper<LoadBalancer>> loadBalancerWrappersList = SpiHandler.getList(LoadBalancer.class);
+        if (loadBalancerWrappersList != null && loadBalancerWrappersList.size() > 0) {
+            configuration.setLoadBalancer(loadBalancerWrappersList.get(0).getImpl());
         }
 
-        Compressor compressor = SpiHandler.get(Compressor.class);
-        if (compressor != null) {
-            configuration.setCompressor(compressor);
+        List<ObjectWrapper<Compressor>> compressorWrappers = SpiHandler.getList(Compressor.class);
+        if (compressorWrappers != null && compressorWrappers.size() > 0) {
+            compressorWrappers.forEach(CompressorFactory::addCompressor);
         }
 
-        Serializer serializer = SpiHandler.get(Serializer.class);
-        if (serializer != null) {
-            configuration.setSerializer(serializer);
+        List<ObjectWrapper<Serializer>> serializerWrappers = SpiHandler.getList(Serializer.class);
+        if (serializerWrappers != null && serializerWrappers.size() > 0) {
+            serializerWrappers.forEach(SerializerFactory::addSerializer);
         }
     }
 }

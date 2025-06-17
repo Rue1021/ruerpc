@@ -59,12 +59,12 @@ public class RueRPCResponseEncoder extends MessageToByteEncoder<RueRPCResponse> 
         byte[] body = null;
         if (rueRPCResponse.getBody() != null) {
             Serializer serializer = SerializerFactory
-                    .getSerializer(rueRPCResponse.getSerializeType()).getSerializer();
+                    .getSerializer(rueRPCResponse.getSerializeType()).getImpl();
             body = serializer.serialize(rueRPCResponse.getBody());
             //压缩
             Compressor compressor = CompressorFactory
                     .getCompressor(rueRPCResponse.getCompressType())
-                    .getCompressor();
+                    .getImpl();
             body = compressor.compress(body);
             //写入
             byteBuf.writeBytes(body);

@@ -18,7 +18,7 @@ public class ProviderApplication {
         RueRPCBootstrap.getInstance()
                 .application("first-ruerpc-provider")
                 .registry(new RegistryConfig("zookeeper://127.0.0.1:2181"))
-                .protocol(new ProtocolConfig("jdk"))
+                .serialize("jdk")
                 //发布服务
                 //.publish(service)
                 //扫包批量发布

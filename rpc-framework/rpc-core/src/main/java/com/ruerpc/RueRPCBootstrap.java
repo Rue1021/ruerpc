@@ -100,19 +100,6 @@ public class RueRPCBootstrap {
         return this;
     }
 
-    /**
-     * 配置当前暴露的服务使用的协议
-     * @param protocolConfig 协议的封装
-     * @return
-     */
-    public RueRPCBootstrap protocol(ProtocolConfig protocolConfig) {
-        configuration.setProtocolConfig(protocolConfig);
-        if (log.isDebugEnabled()) {
-            log.debug("当前服务使用了{}协议进行序列化", protocolConfig);
-        }
-        return this;
-    }
-
 
     /**
      * ---------------------------⬇️服务提供方的相关api---------------------------------

@@ -1,3 +1,3 @@
-com.ruerpc.loadbalancer.impl.ConsistentHashLoadBalancer
-com.ruerpc.loadbalancer.impl.MinimumResponseTimeLoadBalancer
-com.ruerpc.loadbalancer.impl.RoundRobinLoadBalancer
+2-consistentHash-com.ruerpc.loadbalancer.impl.ConsistentHashLoadBalancer
+3-minimumResponseTime-com.ruerpc.loadbalancer.impl.MinimumResponseTimeLoadBalancer
+1-roundRobin-com.ruerpc.loadbalancer.impl.RoundRobinLoadBalancer

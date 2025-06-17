@@ -44,15 +44,10 @@ public class Configuration {
     private RegistryConfig registryConfig = new RegistryConfig("zookeeper://127.0.0.1:2181");
 
     //配置信息 --> 序列化协议
-    private ProtocolConfig protocolConfig = new ProtocolConfig(this.getSerializeType());
-
-    //配置信息 --> 序列化协议
     private String serializeType = "jdk";
-    private Serializer serializer = new JdkSerializer();
 
     //配置信息 --> 压缩的协议
     private String compressType = "gzip";
-    private Compressor compressor = new GzipCompressor();
 
     //配置信息 --> id发号器
     private IdGenerator idGenerator = new IdGenerator(1L, 2L);
@@ -72,7 +67,4 @@ public class Configuration {
         xmlResolver.loadFromXml(this);
     }
 
-    public static void main(String[] args) {
-        Configuration configuration = new Configuration();
-    }
 }
