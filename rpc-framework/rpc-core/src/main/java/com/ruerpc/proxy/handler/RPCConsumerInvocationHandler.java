@@ -64,7 +64,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                 .requestType(RequestType.REQUEST.getId())
                 .serializeType(SerializerFactory.getSerializer(RueRPCBootstrap.getInstance()
                         .getConfiguration().getSerializeType()).getCode())
-                .timeStamp(new Date().getTime())
+                .timeStamp(System.currentTimeMillis())
                 .requestPayload(requestPayload)
                 .build();
         //将请求放入本地线程

@@ -1,16 +1,11 @@
-package com.ruerpc;
+package com.ruerpc.config;
 
+import com.ruerpc.IdGenerator;
+import com.ruerpc.ProtocolConfig;
 import com.ruerpc.compress.Compressor;
-import com.ruerpc.compress.impl.GzipCompressor;
-import com.ruerpc.discovery.Registry;
 import com.ruerpc.discovery.RegistryConfig;
 import com.ruerpc.loadbalancer.LoadBalancer;
-import com.ruerpc.loadbalancer.impl.ConsistentHashLoadBalancer;
 import com.ruerpc.serialize.Serializer;
-import com.ruerpc.serialize.impl.JdkSerializer;
-import com.ruerpc.transport.message.RueRPCRequest;
-import io.netty.channel.Channel;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -23,59 +18,18 @@ import javax.xml.xpath.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
-import java.net.InetSocketAddress;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author Rue
- * @date 2025/6/15 19:42
- * <p>
- * 全局的配置类，优先级：代码配置 --> xml配置 --> spi配置（主动发现）--> 默认项
+ * @date 2025/6/17 13:21
  */
-@Data
 @Slf4j
-public class Configuration {
-
-    //配置信息 --> 端口号
-    private int port = 8090;
-
-    //配置信息 --> 应用程序的名字
-    private String appName = "default";
-
-    //配置信息 --> 注册中心
-    private RegistryConfig registryConfig = new RegistryConfig("zookeeper://127.0.0.1:2181");
-
-    //配置信息 --> 序列化协议
-    private ProtocolConfig protocolConfig = new ProtocolConfig(this.getSerializeType());
-
-    //配置信息 --> 序列化协议
-    private String serializeType = "jdk";
-    private Serializer serializer = new JdkSerializer();
-
-    //配置信息 --> 压缩的协议
-    private String compressType = "gzip";
-    private Compressor compressor = new GzipCompressor();
-
-    //配置信息 --> id发号器
-    private IdGenerator idGenerator = new IdGenerator(1L, 2L);
-
-    //配置信息 --> 负载均衡策略
-    private LoadBalancer loadBalancer = new ConsistentHashLoadBalancer();
-
-    public Configuration() {
-        //读取xml获取上面的信息
-        loadFromXml(this);
-    }
-
+public class XmlResolver {
     /**
      * 使用原生的api从配置文件读取配置信息
-     *
      * @param configuration 配置实例
      */
-    private void loadFromXml(Configuration configuration) {
+    public void loadFromXml(Configuration configuration) {
         try {
             //1. 拿到一个document
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -280,9 +234,5 @@ public class Configuration {
             log.error("解析表达式时发生异常", e);
         }
         return null;
-    }
-
-    public static void main(String[] args) {
-        Configuration configuration = new Configuration();
     }
 }
