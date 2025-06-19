@@ -1,5 +1,6 @@
 package com.ruerpc.proxy.handler;
 
+import ch.qos.logback.core.subst.Token;
 import com.ruerpc.NettyBootstrapInitializer;
 import com.ruerpc.RueRPCBootstrap;
 import com.ruerpc.annotation.TryTimes;
@@ -8,6 +9,8 @@ import com.ruerpc.discovery.Registry;
 import com.ruerpc.enumeration.RequestType;
 import com.ruerpc.exceptions.DiscoveryException;
 import com.ruerpc.exceptions.NetworkException;
+import com.ruerpc.protection.CircuitBreaker;
+import com.ruerpc.protection.TokenBucketRateLimiter;
 import com.ruerpc.serialize.SerializerFactory;
 import com.ruerpc.transport.message.RequestPayload;
 import com.ruerpc.transport.message.RueRPCRequest;
@@ -19,8 +22,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
-import java.util.Date;
-import java.util.Random;
+import java.net.SocketAddress;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -80,6 +83,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
 
         while (true) {
             try {
+
                 //--------------------------1. 封装报文------------------------------------------
                 //封装报文
                 RequestPayload requestPayload = RequestPayload.builder()
@@ -110,6 +114,33 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                         .getLoadBalancer().selectServiceAddress(interfaceRef.getName());
                 if (log.isDebugEnabled()) {
                     log.debug("服务调用方，发现了服务【{}】的可用主机【{}】", interfaceRef.getName(), address);
+                }
+
+                //获取当前地址所对应的熔断器
+                //如果熔断器是打开的，说明当前请求不应该被发送
+                Map<SocketAddress, CircuitBreaker> everyIpCircuitBreaker = RueRPCBootstrap.getInstance()
+                        .getConfiguration().getEveryIpCircuitBreaker();
+                CircuitBreaker circuitBreaker = everyIpCircuitBreaker.get(address);
+                if (circuitBreaker == null) {
+                    circuitBreaker = new CircuitBreaker(10, 0.5F);
+                    everyIpCircuitBreaker.put(address, circuitBreaker);
+                }
+                //放行心跳检测
+                if (rueRPCRequest.getRequestType() != RequestType.HEART_BEAT.getId()
+                        && circuitBreaker.isBreak()) {
+                    Timer timer = new Timer();
+                    timer.schedule(new TimerTask() {
+                        @Override
+                        public void run() {
+                            RueRPCBootstrap
+                                    .getInstance()
+                                    .getConfiguration()
+                                    .getEveryIpCircuitBreaker()
+                                    .get(address)
+                                    .reset();
+                        }
+                    }, 3000);
+                    throw new RuntimeException("--------> circuit breaker is open, unable to launch request");
                 }
 
                 //2. 尝试获取一个可用channel (避免每次调用都会产生一个新的netty连接 -> 缓存channel)
@@ -144,9 +175,14 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                 RueRPCBootstrap.REQUEST_THREAD_LOCAL.remove();
 
                 //5. 获得响应的结果
-                return completableFuture.get(30, TimeUnit.SECONDS);
+                Object result = completableFuture.get(30, TimeUnit.SECONDS);
+
+                //记录成功请求次数
+                circuitBreaker.recordRequest();
+                return result;
             } catch (Exception e) {
                 tryTimes--;
+                //
                 try {
                     Thread.sleep(intervalTime);
                 } catch (InterruptedException ignored) {

@@ -24,11 +24,13 @@ public class ConsumerApplication {
 
         Hello hello = reference.get();
 
-        //测试
-        for (int i = 0; i < 10; i++) {
-            String sayHi = hello.sayHi("ruerpc");
-            log.info("sayHi -> {}, port:{}", sayHi, RueRPCBootstrap.getInstance()
-                    .getConfiguration().getPort());
+        while (true) {
+            //测试
+            for (int i = 0; i < 50; i++) {
+                String sayHi = hello.sayHi("ruerpc");
+                log.info("sayHi -> {}, port:{}", sayHi, RueRPCBootstrap.getInstance()
+                        .getConfiguration().getPort());
+            }
         }
     }
 }

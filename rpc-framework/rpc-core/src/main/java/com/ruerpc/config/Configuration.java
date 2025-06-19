@@ -7,6 +7,8 @@ import com.ruerpc.compress.impl.GzipCompressor;
 import com.ruerpc.discovery.RegistryConfig;
 import com.ruerpc.loadbalancer.LoadBalancer;
 import com.ruerpc.loadbalancer.impl.ConsistentHashLoadBalancer;
+import com.ruerpc.protection.CircuitBreaker;
+import com.ruerpc.protection.RateLimiter;
 import com.ruerpc.serialize.Serializer;
 import com.ruerpc.serialize.impl.JdkSerializer;
 import lombok.Data;
@@ -23,6 +25,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serial;
 import java.lang.reflect.InvocationTargetException;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author Rue
@@ -54,6 +60,11 @@ public class Configuration {
 
     //配置信息 --> 负载均衡策略
     private LoadBalancer loadBalancer = new ConsistentHashLoadBalancer();
+
+    //为每一个ip配置一个限流器
+    private Map<SocketAddress, RateLimiter> everyIpRateLimiter = new ConcurrentHashMap<>(16);
+    //为每一个ip配置一个熔断器
+    private Map<SocketAddress, CircuitBreaker> everyIpCircuitBreaker = new ConcurrentHashMap<>(16);
 
     public Configuration() {
         //1. 成员变量的默认配置项
