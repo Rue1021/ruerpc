@@ -2,6 +2,7 @@ package com.ruerpc.channelhandler.handler;
 
 import com.ruerpc.RueRPCBootstrap;
 import com.ruerpc.ServiceConfig;
+import com.ruerpc.core.ShutDownHelper;
 import com.ruerpc.enumeration.RequestType;
 import com.ruerpc.enumeration.ResponseCode;
 import com.ruerpc.protection.RateLimiter;
@@ -39,7 +40,6 @@ public class MethodCallHandler extends SimpleChannelInboundHandler<RueRPCRequest
     @Override
     protected void channelRead0(ChannelHandlerContext channelHandlerContext,
                                 RueRPCRequest rueRPCRequest) throws Exception {
-
         //进来先封装部分响应
         RueRPCResponse rueRPCResponse = RueRPCResponse.builder()
                 .requestId(rueRPCRequest.getRequestId())
@@ -48,8 +48,17 @@ public class MethodCallHandler extends SimpleChannelInboundHandler<RueRPCRequest
                 .timeStamp(System.currentTimeMillis())
                 .build();
 
-        //限流
         Channel channel = channelHandlerContext.channel();
+
+        //如果启用了挡板, 说明服务正在关闭
+        if (ShutDownHelper.BAFFLE.get()) {
+            rueRPCResponse.setResponseCode(ResponseCode.CLOSING.getCode());
+            channel.writeAndFlush(rueRPCResponse);
+            return;
+        }
+        ShutDownHelper.REQUEST_COUNTER.increment();
+
+        //限流
         SocketAddress socketAddress = channel.remoteAddress();
         Map<SocketAddress, RateLimiter> everyIpRateLimiter = RueRPCBootstrap
                 .getInstance().getConfiguration().getEveryIpRateLimiter();
@@ -89,6 +98,8 @@ public class MethodCallHandler extends SimpleChannelInboundHandler<RueRPCRequest
 
         //4. 写出响应
         channel.writeAndFlush(rueRPCResponse);
+
+        ShutDownHelper.REQUEST_COUNTER.decrement();
     }
 
     private Object callTargetMethod(RequestPayload requestPayload) {

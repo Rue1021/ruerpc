@@ -6,6 +6,7 @@ import com.ruerpc.channelhandler.handler.RueRPCRequestDecoder;
 import com.ruerpc.channelhandler.handler.RueRPCResponseEncoder;
 import com.ruerpc.config.Configuration;
 import com.ruerpc.core.HeartbeatDetector;
+import com.ruerpc.core.RueRPCShutdownHook;
 import com.ruerpc.discovery.RegistryConfig;
 import com.ruerpc.loadbalancer.LoadBalancer;
 import com.ruerpc.transport.message.RueRPCRequest;
@@ -133,6 +134,9 @@ public class RueRPCBootstrap {
      * 启动netty服务
      */
     public void start() {
+        //netty服务启动前，把关闭应用程序的钩子函数注册好
+        Runtime.getRuntime().addShutdownHook(new RueRPCShutdownHook());
+
         EventLoopGroup boss = new NioEventLoopGroup(2);
         EventLoopGroup worker = new NioEventLoopGroup(10);
         try {

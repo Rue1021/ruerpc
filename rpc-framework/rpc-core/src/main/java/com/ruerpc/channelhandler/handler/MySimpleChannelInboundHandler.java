@@ -3,7 +3,9 @@ package com.ruerpc.channelhandler.handler;
 import com.ruerpc.RueRPCBootstrap;
 import com.ruerpc.enumeration.ResponseCode;
 import com.ruerpc.exceptions.ResponseException;
+import com.ruerpc.loadbalancer.LoadBalancer;
 import com.ruerpc.protection.CircuitBreaker;
+import com.ruerpc.transport.message.RueRPCRequest;
 import com.ruerpc.transport.message.RueRPCResponse;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -55,6 +57,24 @@ public class MySimpleChannelInboundHandler extends SimpleChannelInboundHandler<R
             if (log.isDebugEnabled()) {
                 log.debug("------>已找到编号为【{}】的completableFuture，处理心跳检测", rueRPCResponse.getRequestId());
             }
+        } else if (responseCode == ResponseCode.CLOSING.getCode()) {
+            circuitBreaker.recordErrorRequest();
+            completableFuture.complete(null);
+            if (log.isDebugEnabled()) {
+                log.debug("-------->当前id为[{}]的请求,访问被拒绝，目标服务器正在关闭，响应码[{}]",
+                        rueRPCResponse.getRequestId(), responseCode);
+            }
+
+            //修正负载均衡器，重新进行负载均衡
+            //将正在关闭的服务器从健康列表移除
+            RueRPCBootstrap.CHANNEL_CACHE.remove(socketAddress);
+            LoadBalancer loadBalancer = RueRPCBootstrap.getInstance().getConfiguration().getLoadBalancer();
+            RueRPCRequest rueRPCRequest = RueRPCBootstrap.REQUEST_THREAD_LOCAL.get();
+
+            loadBalancer.reLoadBalance(rueRPCRequest.getRequestPayload().getInterfaceName(),
+                    RueRPCBootstrap.CHANNEL_CACHE.keySet().stream().toList());
+
+            throw new ResponseException(responseCode, ResponseCode.CLOSING.getDescription());
         } else {
             //服务提供方给予的结果
             Object returnValue = rueRPCResponse.getBody();

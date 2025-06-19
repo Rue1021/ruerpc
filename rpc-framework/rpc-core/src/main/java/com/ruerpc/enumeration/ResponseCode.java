@@ -16,7 +16,9 @@ public enum ResponseCode {
     SUCCESS_HEARTBEAT((byte)21, "heartbeat OK"),
     RATE_LIMIT((byte)31, "service rate limited"),
     RESOURCE_NOT_FOUND((byte)44, "resource not exist"),
-    FAILED((byte)50, "method call failed");
+    FAILED((byte)50, "method call failed"),
+    CLOSING((byte)51, "service provider is closing")
+    ;
 
     private byte code;
     private String description;
