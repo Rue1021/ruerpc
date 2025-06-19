@@ -8,6 +8,7 @@ public class ServiceConfig<T> {
 
     private Class<?> interfaceProvider;
     private Object ref; //具体的引用的实现
+    private String group = "default";
 
     public Class<?> getInterface() {
         return interfaceProvider;
@@ -26,6 +27,11 @@ public class ServiceConfig<T> {
     }
 
 
+    public void setGroup(String group) {
+        this.group = group;
+    }
 
-
+    public String getGroup() {
+        return group;
+    }
 }

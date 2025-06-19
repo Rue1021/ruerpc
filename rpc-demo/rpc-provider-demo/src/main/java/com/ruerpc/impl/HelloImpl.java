@@ -7,7 +7,7 @@ import com.ruerpc.annotation.RueRPCApi;
  * @author Rue
  * @date 2025/5/19 21:35
  */
-@RueRPCApi
+@RueRPCApi(group = "primary")
 public class HelloImpl implements Hello {
 
     @Override

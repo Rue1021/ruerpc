@@ -14,4 +14,5 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)  //注解在类上定义
 @Retention(RetentionPolicy.RUNTIME)  //在运行时生效
 public @interface RueRPCApi {
+    String group() default "default";
 }

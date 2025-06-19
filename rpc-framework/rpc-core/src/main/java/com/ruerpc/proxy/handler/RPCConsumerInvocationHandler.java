@@ -40,10 +40,13 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
 
     private final Registry registry;
     private final Class<?> interfaceRef;
+    private String group;
 
-    public RPCConsumerInvocationHandler(Registry registry, Class<?> interfaceRef) {
+    //分组group需要放在ConsumerInvocationHandler里面，去做服务发现
+    public RPCConsumerInvocationHandler(Registry registry, Class<?> interfaceRef, String group) {
         this.registry = registry;
         this.interfaceRef = interfaceRef;
+        this.group = group;
     }
 
     /**
@@ -111,7 +114,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
 
                 //1. 传入服务的名字，返回ip+端口
                 InetSocketAddress address = RueRPCBootstrap.getInstance().getConfiguration()
-                        .getLoadBalancer().selectServiceAddress(interfaceRef.getName());
+                        .getLoadBalancer().selectServiceAddress(interfaceRef.getName(), group);
                 if (log.isDebugEnabled()) {
                     log.debug("服务调用方，发现了服务【{}】的可用主机【{}】", interfaceRef.getName(), address);
                 }

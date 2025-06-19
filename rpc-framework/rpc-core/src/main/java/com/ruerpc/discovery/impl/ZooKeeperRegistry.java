@@ -39,8 +39,17 @@ public class ZooKeeperRegistry extends AbstractRegistry {
 
     @Override
     public void register(ServiceConfig<?> service) {
-        //节点的服务名称，这是个持久节点
+        //节点的服务名称
         String parentNode = Constant.BASE_PROVIDER_PATH + "/" + service.getInterface().getName();
+
+        //建立服务节点
+        if (!ZooKeeperUtils.exists(zooKeeper, parentNode, null)) {
+            ZooKeeperNode zooKeeperNode = new ZooKeeperNode(parentNode, null);
+            ZooKeeperUtils.createNode(zooKeeper,zooKeeperNode, null, CreateMode.PERSISTENT);
+        }
+
+        //建立分组节点
+        parentNode = parentNode + "/" + service.getGroup();
         if (!ZooKeeperUtils.exists(zooKeeper, parentNode, null)) {
             ZooKeeperNode zooKeeperNode = new ZooKeeperNode(parentNode, null);
             ZooKeeperUtils.createNode(zooKeeper,zooKeeperNode, null, CreateMode.PERSISTENT);
@@ -68,9 +77,9 @@ public class ZooKeeperRegistry extends AbstractRegistry {
      * @return 服务列表
      */
     @Override
-    public List<InetSocketAddress> lookup(String serviceName) {
+    public List<InetSocketAddress> lookup(String serviceName, String group) {
         //1.找到服务对应的节点
-        String serviceNode = Constant.BASE_PROVIDER_PATH + "/" + serviceName;
+        String serviceNode = Constant.BASE_PROVIDER_PATH + "/" + serviceName + "/" + group;
         //2.从zk中获取该节点的子节点
         List<String> children = ZooKeeperUtils.getChildren(zooKeeper, serviceNode, new UpAndDownWatcher());
         //获取所有可用的服务列表

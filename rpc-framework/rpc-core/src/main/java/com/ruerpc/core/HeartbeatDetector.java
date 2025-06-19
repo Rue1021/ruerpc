@@ -29,8 +29,8 @@ public class HeartbeatDetector {
     public static void detectHeartbeat(String serviceName) {
         //拉取服务
         Registry registry = RueRPCBootstrap.getInstance().getConfiguration().getRegistryConfig().getRegistry();
-        List<InetSocketAddress> addresses = registry.lookup(serviceName);
-
+        List<InetSocketAddress> addresses = registry.lookup(serviceName,
+                RueRPCBootstrap.getInstance().getConfiguration().getGroup());
         //建立连接
         for (InetSocketAddress address : addresses) {
             Channel channel = null;

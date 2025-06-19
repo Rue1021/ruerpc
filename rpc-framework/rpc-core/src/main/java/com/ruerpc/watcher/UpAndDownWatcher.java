@@ -29,7 +29,8 @@ public class UpAndDownWatcher implements Watcher {
             Registry registry = RueRPCBootstrap.getInstance()
                     .getConfiguration().getRegistryConfig().getRegistry();
             String serviceName = getServiceName(watchedEvent.getPath());
-            List<InetSocketAddress> addresses = registry.lookup(serviceName);
+            List<InetSocketAddress> addresses = registry.lookup(serviceName,
+                    RueRPCBootstrap.getInstance().getConfiguration().getGroup());
             //处理新增节点：根据地址建立连接并缓存
             for (InetSocketAddress address : addresses) {
                 if (!RueRPCBootstrap.CHANNEL_CACHE.containsKey(address)) {

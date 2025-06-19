@@ -46,6 +46,9 @@ public class Configuration {
     //配置信息 --> 应用程序的名字
     private String appName = "default";
 
+    //分组信息
+    private String group = "default";
+
     //配置信息 --> 注册中心
     private RegistryConfig registryConfig = new RegistryConfig("zookeeper://127.0.0.1:2181");
 

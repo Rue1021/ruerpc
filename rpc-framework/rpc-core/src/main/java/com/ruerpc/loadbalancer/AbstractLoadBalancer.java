@@ -23,7 +23,7 @@ public abstract class AbstractLoadBalancer implements LoadBalancer {
     private Map<String, ServiceSelector> cache = new ConcurrentHashMap<>(8);
 
     @Override
-    public InetSocketAddress selectServiceAddress(String serviceName) {
+    public InetSocketAddress selectServiceAddress(String serviceName, String group) {
 
         //优先从cache中获得一个ServiceSelector
         ServiceSelector cachedServiceSelector = cache.get(serviceName);
@@ -33,7 +33,7 @@ public abstract class AbstractLoadBalancer implements LoadBalancer {
         }
 
         List<InetSocketAddress> serviceList = RueRPCBootstrap.getInstance()
-                .getConfiguration().getRegistryConfig().getRegistry().lookup(serviceName);
+                .getConfiguration().getRegistryConfig().getRegistry().lookup(serviceName, group);
         ServiceSelector serviceSelector = getServiceSelector(serviceList);
         //放入缓存
         cache.put(serviceName, serviceSelector);

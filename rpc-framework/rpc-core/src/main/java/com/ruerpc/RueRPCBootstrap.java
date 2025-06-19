@@ -176,9 +176,12 @@ public class RueRPCBootstrap {
      * @return
      */
     public RueRPCBootstrap reference(ReferenceConfig<?> reference) {
+
         //开启对这个服务的心跳检测
         HeartbeatDetector.detectHeartbeat(reference.getInterfaceRef().getName());
+
         reference.setRegistry(configuration.getRegistryConfig().getRegistry());
+        reference.setGroup(this.getConfiguration().getGroup());
         return this;
     }
 
@@ -238,11 +241,18 @@ public class RueRPCBootstrap {
                      NoSuchMethodException e) {
                 throw new RuntimeException(e);
             }
+
+            //从注解中拿到分组信息
+            RueRPCApi annotation = clazz.getAnnotation(RueRPCApi.class);
+            String group = annotation.group();
+
             for (Class<?> anInterface : interfaces) {
                 ServiceConfig<?> serviceConfig = new ServiceConfig<>();
                 serviceConfig.setInterface(anInterface);
                 //setRef就是实例
                 serviceConfig.setRef(instance);
+                //设置分组
+                serviceConfig.setGroup(group);
                 //发布服务
                 publish(serviceConfig);
                 if (log.isDebugEnabled()) {
@@ -316,5 +326,11 @@ public class RueRPCBootstrap {
 
     public Configuration getConfiguration() {
         return configuration;
+    }
+
+
+    public RueRPCBootstrap group(String groupName) {
+        this.getConfiguration().setGroup(groupName);
+        return this;
     }
 }

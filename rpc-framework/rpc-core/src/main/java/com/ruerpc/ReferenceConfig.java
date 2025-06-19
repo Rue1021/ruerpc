@@ -18,6 +18,7 @@ public class ReferenceConfig<T> {
     private Class<T> interfaceRef;
 
     private Registry registry;
+    private String group;
 
     /**
      * 代理设计模式，生成一个api接口的代理对象
@@ -30,7 +31,7 @@ public class ReferenceConfig<T> {
 
         Class<T>[] classes = new Class[]{interfaceRef};
 
-        InvocationHandler handler = new RPCConsumerInvocationHandler(registry, interfaceRef);
+        InvocationHandler handler = new RPCConsumerInvocationHandler(registry, interfaceRef, group);
 
         //使用动态代理生成代理对象
         Object helloProxy = Proxy.newProxyInstance(classLoader, classes, handler);
@@ -52,5 +53,13 @@ public class ReferenceConfig<T> {
 
     public void setInterfaceRef(Class<T> interfaceRef) {
         this.interfaceRef = interfaceRef;
+    }
+
+    public void setGroup(String group) {
+        this.group = group;
+    }
+
+    public String getGroup() {
+        return group;
     }
 }
