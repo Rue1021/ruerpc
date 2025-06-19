@@ -28,7 +28,7 @@ public class RueRPCBeanPostProcessor implements BeanPostProcessor {
                 Object proxy = ProxyFactory.getProxy(clazz);
                 field.setAccessible(true);
                 try {
-                    field.set(clazz, proxy);
+                    field.set(bean, proxy);
                 } catch (IllegalAccessException e) {
                     throw new RuntimeException(e);
                 }
