@@ -48,7 +48,7 @@ public class RueRPCBootstrap {
     //全局的配置中心
     private Configuration configuration;
 
-    //用当前线程保存request常量
+    //用当前线程保存request，成功写出后清除
     public static final ThreadLocal<RueRPCRequest> REQUEST_THREAD_LOCAL = new ThreadLocal<>();
 
     //维护已经发布并暴露的服务列表 key -> interface的全限定名 value -> ServiceConfig
@@ -171,11 +171,13 @@ public class RueRPCBootstrap {
     }
 
     /**
-     * ---------------------------⬇️服务调用方的相关api---------------------------------
+     * ---------------------------⬇️消费者相关的api---------------------------------
      */
 
     /**
-     * 好像是用来开启服务的
+     * 消费方配置的服务引用信息通过这个方法注册到RPC框架的核心上下文
+     * 这里的reference()方法：开启了心跳探测；从全局配置中继承了注册中心和分组配置
+     * 没有做到：将ReferenceConfig存入全局缓存、连接注册中心、创建代理对象
      * @param reference
      * @return
      */

@@ -27,6 +27,7 @@ public class ZooKeeperUtils {
         //定义超时时间
         int timeout = Constant.TIMEOUT;
 
+        //重载方法
         return createZookeeper(connectString, timeout);
 
     }

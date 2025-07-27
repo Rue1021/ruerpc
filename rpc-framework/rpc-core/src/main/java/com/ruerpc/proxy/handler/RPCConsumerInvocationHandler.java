@@ -50,29 +50,16 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * consumer端所有的方法调用，本质上都会走到这个方法里
-     * @param proxy the proxy instance that the method was invoked on
-     *
-     * @param method the {@code Method} instance corresponding to
-     * the interface method invoked on the proxy instance.  The declaring
-     * class of the {@code Method} object will be the interface that
-     * the method was declared in, which may be a superinterface of the
-     * proxy interface that the proxy class inherits the method through.
-     *
-     * @param args an array of objects containing the values of the
-     * arguments passed in the method invocation on the proxy instance,
-     * or {@code null} if interface method takes no arguments.
-     * Arguments of primitive types are wrapped in instances of the
-     * appropriate primitive wrapper class, such as
-     * {@code java.lang.Integer} or {@code java.lang.Boolean}.
      *
      * @return
      * @throws Throwable
+     *
+     * consumer端所有的方法调用，本质上都会走到这个方法里
      */
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 
-        //从方法上拿到TryTimes注解，判断是否需要重试
+        //从方法上拿到TryTimes注解，判断是否需要重试远程调用
         TryTimes tryTimesAnnotation = method.getAnnotation(TryTimes.class);
 
         //异常重试次数, 默认值0代表不重试
@@ -107,12 +94,13 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                         .timeStamp(System.currentTimeMillis())
                         .requestPayload(requestPayload)
                         .build();
-                //将请求放入本地线程
+
+                //将请求放入当前线程
                 RueRPCBootstrap.REQUEST_THREAD_LOCAL.set(rueRPCRequest);
 
-                //----------2. 发现服务，从注册中心拉取服务列表，并通过客户端负载均衡寻找一个可用服务-----------
+                //-------2. 发现服务，从注册中心拉取服务列表，并通过客户端负载均衡寻找一个可用服务，通过netty连接服务方--------
 
-                //1. 传入服务的名字，返回ip+端口
+                //1. 传入服务的名字，通过负载均衡找到可用服务，返回服务的ip+端口
                 InetSocketAddress address = RueRPCBootstrap.getInstance().getConfiguration()
                         .getLoadBalancer().selectServiceAddress(interfaceRef.getName(), group);
                 if (log.isDebugEnabled()) {
@@ -120,7 +108,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                 }
 
                 //获取当前地址所对应的熔断器
-                //如果熔断器是打开的，说明当前请求不应该被发送
+                //如果熔断器是工作的(打开状态)，说明当前请求不应该被发送
                 Map<SocketAddress, CircuitBreaker> everyIpCircuitBreaker = RueRPCBootstrap.getInstance()
                         .getConfiguration().getEveryIpCircuitBreaker();
                 CircuitBreaker circuitBreaker = everyIpCircuitBreaker.get(address);
@@ -128,22 +116,25 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                     circuitBreaker = new CircuitBreaker(10, 0.5F);
                     everyIpCircuitBreaker.put(address, circuitBreaker);
                 }
-                //放行心跳检测
+                //如果是心跳，则不进入if逻辑，放行心跳检测
                 if (rueRPCRequest.getRequestType() != RequestType.HEART_BEAT.getId()
-                        && circuitBreaker.isBreak()) {
-                    Timer timer = new Timer();
-                    timer.schedule(new TimerTask() {
+                        && circuitBreaker.isWorking()) {
+                    CircuitBreaker.RESET_TIMER.schedule(new TimerTask() {
                         @Override
                         public void run() {
                             RueRPCBootstrap
                                     .getInstance()
                                     .getConfiguration()
+                                    //从配置类拿到熔断器实例
                                     .getEveryIpCircuitBreaker()
+                                    //根据服务的地址拿到每个ip特定的熔断器
                                     .get(address)
+                                    //重置熔断器
                                     .reset();
                         }
                     }, 3000);
-                    throw new RuntimeException("--------> circuit breaker is open, unable to launch request");
+                    throw new RuntimeException("--------> circuit breaker is open, unable to launch request" +
+                            "，3秒后重置熔断器");
                 }
 
                 //2. 尝试获取一个可用channel (避免每次调用都会产生一个新的netty连接 -> 缓存channel)
@@ -154,11 +145,11 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
 
         //---------------------------------------异步策略------------------------------------------
 
-                //4. 写出报文
+                //用于发送请求的Future，每次使用都新建，管理RPC请求-响应交互的全流程
                 CompletableFuture<Object> completableFuture = new CompletableFuture<>();
-
                 //4.1 将completableFuture暴露出去
                 RueRPCBootstrap.PENDING_REQUEST.put(rueRPCRequest.getRequestId(), completableFuture);
+
 
                 //4.2 writeAndFlush写出一个请求，这个请求的实例会进入pipeline进行一系列出站操作
                 channel.writeAndFlush(rueRPCRequest).addListener(
@@ -216,9 +207,13 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
 
         //2. 拿不到就去建立连接
         if (channel == null) {
-            //使用addListener实现的异步操作
+
+            //用于获取连接的Future，一次性的，管理Netty连接的建立过程，获取成功后通道可以复用
             CompletableFuture<Channel> channelFuture = new CompletableFuture<>();
-            NettyBootstrapInitializer.getBootstrap().connect(address).addListener(
+            //这里是真正连接到服务器的地方，使用到了Netty客户端引导类NettyBootstrapInitializer
+            NettyBootstrapInitializer.getBootstrap().connect(address)
+                    //使用addListener监听
+                    .addListener(
                     (ChannelFutureListener) promise -> {
                         if (promise.isDone()) {
                             if (log.isDebugEnabled()) {
@@ -231,8 +226,9 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                     }
             );
 
-            //阻塞获取channel
+
             try {
+                //阻塞获取channel
                 channel = channelFuture.get(3, TimeUnit.SECONDS);
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 log.error("获取通道时发生异常", e);

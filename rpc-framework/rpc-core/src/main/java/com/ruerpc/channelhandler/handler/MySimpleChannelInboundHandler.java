@@ -19,7 +19,7 @@ import java.util.concurrent.CompletableFuture;
  * @author Rue
  * @date 2025/5/28 14:14
  * <p>
- * 测试类，入站handler
+ * 客户端的一个入站handler
  */
 @Slf4j
 public class MySimpleChannelInboundHandler extends SimpleChannelInboundHandler<RueRPCResponse> {

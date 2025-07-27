@@ -8,7 +8,7 @@ public class ServiceConfig<T> {
 
     private Class<?> interfaceProvider;
     private Object ref; //具体的引用的实现
-    private String group = "default";
+    private String group = "default"; //分组节点
 
     public Class<?> getInterface() {
         return interfaceProvider;

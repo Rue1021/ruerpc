@@ -17,6 +17,7 @@ public class ConsumerChannelInitializer extends ChannelInitializer<SocketChannel
     @Override
     protected void initChannel(SocketChannel socketChannel) throws Exception {
 
+        //往pipeline里加点东西
         socketChannel.pipeline()
                 //netty自带的日志处理器
                 .addLast(new LoggingHandler(LogLevel.DEBUG))
@@ -24,7 +25,7 @@ public class ConsumerChannelInitializer extends ChannelInitializer<SocketChannel
                 .addLast(new RueRPCRequestEncoder())
                 //入站解码器
                 .addLast(new RueRPCResponseDecoder())
-                //处理结果
+                //这里的MySimpleChannelInboundHandler类是真正处理消息的地方
                 .addLast(new MySimpleChannelInboundHandler());
     }
 }

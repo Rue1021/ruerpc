@@ -11,6 +11,7 @@ public class ProviderApplication {
     public static void main(String[] args) {
 
         ServiceConfig<Hello> service = new ServiceConfig<>();
+
         service.setInterface(Hello.class);
         service.setRef(new HelloImpl());
 

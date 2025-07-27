@@ -1,5 +1,6 @@
 package com.ruerpc.protection;
 
+import java.util.Timer;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -11,7 +12,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class CircuitBreaker {
 
     //默认情况下，熔断器是不打开的
-    private volatile boolean isOpen = false;
+    private volatile boolean isWorking = false;
+
+    // 使用全局单例Timer来完成熔断器重置（注意线程安全）
+    public static final Timer RESET_TIMER = new Timer("CircuitBreaker-Reset-Timer", true);
+
 
     //总请求数
     private AtomicInteger requestCount = new AtomicInteger(0);
@@ -30,17 +35,20 @@ public class CircuitBreaker {
      * 熔断器的核心方法
      * @return
      */
-    public boolean isBreak() {
-        if (isOpen) return true;
+    public boolean isWorking() {
+        //如果熔断器是工作状态，返回true，表示熔断器isWorking
+        if (isWorking) return true;
 
+        //失败请求超过阈值
         if (errorRequestCount.get() >= maxErrorRequestCount ) {
-            this.isOpen = true;
+            this.isWorking = true;
             return true;
         }
 
+        //失败率超过阈值
         if (requestCount.get() > 0 && errorRequestCount.get() > 0
         && errorRequestCount.get() / (float) maxErrorRequestCount >= maxErrorRate) {
-            this.isOpen = true;
+            this.isWorking = true;
             return true;
         }
         return false;
@@ -58,7 +66,7 @@ public class CircuitBreaker {
      * 重置熔断器
      */
     public void reset() {
-        this.isOpen = false;
+        this.isWorking = false;
         this.requestCount.set(0);
         this.errorRequestCount.set(0);
     }

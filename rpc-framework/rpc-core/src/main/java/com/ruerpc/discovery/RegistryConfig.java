@@ -10,7 +10,7 @@ import com.ruerpc.exceptions.DiscoveryException;
  */
 public class RegistryConfig {
 
-    //定义连接的url
+    //定义连接的url，我们的注册中心是zookeeper://127.0.0.1:2181
     private String connectionString;
 
     public RegistryConfig(String connectionString) {
@@ -22,10 +22,14 @@ public class RegistryConfig {
      * @return 具体的注册中心实例
      */
     public Registry getRegistry() {
-        //获取注册中心的类型，由于私有方法里做了处理，所以这里不会出现空指针
+        //获取注册中心的类型，由于私有方法getRegistryType里做了处理，所以这里不会出现空指针
+        //1. 得到://的前半部分，目前为zookeeper，后面也可以用其他的
         String registryType = getRegistryType(connectionString, true).toLowerCase().trim();
+        //2. 目前我们传入的是zookeeper
         if (registryType.equals("zookeeper")) {
+            //3. 得到://的后半部分，即ip:端口
             String host = getRegistryType(connectionString, false);
+            //4. 返回一个ZooKeeperRegistry对象
             return new ZooKeeperRegistry(host, Constant.TIMEOUT);
         }
         throw new DiscoveryException("未发现合适的注册中心");

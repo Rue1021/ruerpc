@@ -11,8 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ConsumerApplication {
     public static void main(String[] args) {
-        //reference来自远端的引用
+        //泛型指定了要调用的远程服务接口类型
         ReferenceConfig<Hello> reference = new ReferenceConfig<>();
+
         reference.setInterfaceRef(Hello.class);
 
         RueRPCBootstrap.getInstance()
@@ -23,12 +24,13 @@ public class ConsumerApplication {
                 .group("primary")
                 .reference(reference);
 
-        Hello hello = reference.get();
+        //获取Hello接口服务的动态代理对象，后续对Hello的调用会被拦截并转为远程调用
+        Hello dynamicProxy = reference.get();
 
         while (true) {
             //测试
             for (int i = 0; i < 50; i++) {
-                String sayHi = hello.sayHi("ruerpc");
+                String sayHi = dynamicProxy.sayHi("ruerpc");
                 log.info("sayHi -> {}, port:{}", sayHi, RueRPCBootstrap.getInstance()
                         .getConfiguration().getPort());
             }
