@@ -57,7 +57,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
      * consumer端所有的方法调用，本质上都会走到这个方法里
      */
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    public CompletableFuture<Object> invoke(Object proxy, Method method, Object[] args) throws Throwable {
 
         //从方法上拿到TryTimes注解，判断是否需要重试远程调用
         TryTimes tryTimesAnnotation = method.getAnnotation(TryTimes.class);
@@ -145,35 +145,45 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
 
         //---------------------------------------异步策略------------------------------------------
 
-                //用于发送请求的Future，每次使用都新建，管理RPC请求-响应交互的全流程
+//
+// 用于发送请求的Future，每次使用都新建，管理RPC请求-响应交互的全流程
+//                CompletableFuture<Object> completableFuture = new CompletableFuture<>();
+//                //4.1 将completableFuture暴露出去
+//                RueRPCBootstrap.PENDING_REQUEST.put(rueRPCRequest.getRequestId(), completableFuture);
+//
+//
+//                //4.2 writeAndFlush写出一个请求，这个请求的实例会进入pipeline进行一系列出站操作
+//                channel.writeAndFlush(rueRPCRequest).addListener(
+//                        (ChannelFutureListener) promise -> {
+//                            if (!promise.isSuccess()) {
+//                                completableFuture.completeExceptionally(promise.cause());
+//                            }
+//                        }
+//                );
+//                //写出以后，清理ThreadLocal
+//                RueRPCBootstrap.REQUEST_THREAD_LOCAL.remove();
+//                //5. 获得响应的结果
+//                Object result = completableFuture.get(30, TimeUnit.SECONDS);
+//                //记录成功请求次数
+//                circuitBreaker.recordRequest();
+//                return result;
                 CompletableFuture<Object> completableFuture = new CompletableFuture<>();
-                //4.1 将completableFuture暴露出去
                 RueRPCBootstrap.PENDING_REQUEST.put(rueRPCRequest.getRequestId(), completableFuture);
 
+                // 异步发送请求
+                channel.writeAndFlush(rueRPCRequest).addListener(promise -> {
+                    if (!promise.isSuccess()) {
+                        completableFuture.completeExceptionally(promise.cause());
+                    }
+                });
 
-                //4.2 writeAndFlush写出一个请求，这个请求的实例会进入pipeline进行一系列出站操作
-                channel.writeAndFlush(rueRPCRequest).addListener(
-                        (ChannelFutureListener) promise -> {
-                    /* 一旦数据被写出去，这个promise就结束了，
-                       所以我们需要挂起completableFuture并暴露，并且在得到服务提供方响应的时候调用complete方法
-                       pipeline里会调用complete方法，
-                       我们要pipeline中最终的handler的处理结果
-                     */
-                            if (!promise.isSuccess()) {
-                                completableFuture.completeExceptionally(promise.cause());
-                            }
-                        }
-                );
-
-                //写出以后，清理ThreadLocal
+                // 清理ThreadLocal
                 RueRPCBootstrap.REQUEST_THREAD_LOCAL.remove();
-
-                //5. 获得响应的结果
-                Object result = completableFuture.get(30, TimeUnit.SECONDS);
-
-                //记录成功请求次数
+                //记录请求次数
                 circuitBreaker.recordRequest();
-                return result;
+                // 返回带超时控制的Future
+                return completableFuture
+                        .orTimeout(30, TimeUnit.SECONDS);
             } catch (Exception e) {
                 tryTimes--;
                 //

@@ -2,6 +2,7 @@ package com.ruerpc.channelhandler.handler;
 
 import com.ruerpc.RueRPCBootstrap;
 import com.ruerpc.enumeration.ResponseCode;
+import com.ruerpc.enumeration.ResponseCodeConstant;
 import com.ruerpc.exceptions.ResponseException;
 import com.ruerpc.loadbalancer.LoadBalancer;
 import com.ruerpc.protection.CircuitBreaker;
@@ -12,8 +13,11 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.SocketAddress;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+
+import static com.ruerpc.enumeration.ResponseCodeConstant.*;
 
 /**
  * @author Rue
@@ -31,58 +35,71 @@ public class MySimpleChannelInboundHandler extends SimpleChannelInboundHandler<R
                 .get(rueRPCResponse.getRequestId());
 
         SocketAddress socketAddress = channelHandlerContext.channel().remoteAddress();
-        Map<SocketAddress, CircuitBreaker> everyIpCircuitBreaker = RueRPCBootstrap.getInstance()
-                .getConfiguration().getEveryIpCircuitBreaker();
-        //因为方法调用时已经添加了缓存，所以这里一定能拿到熔断器
-        CircuitBreaker circuitBreaker = everyIpCircuitBreaker.get(socketAddress);
+        CircuitBreaker circuitBreaker = RueRPCBootstrap
+                .getInstance()
+                .getConfiguration()
+                .getEveryIpCircuitBreaker()
+                //因为方法调用时已经添加了缓存，所以这里一定能拿到熔断器
+                .get(socketAddress);
 
         byte responseCode = rueRPCResponse.getResponseCode();
-        if (responseCode == ResponseCode.FAILED.getCode()) {
-            circuitBreaker.recordErrorRequest();
-            completableFuture.complete(null);
-            log.error("-------->当前id为[{}]的请求，返回错误的结果，响应码[{}]", rueRPCResponse.getRequestId(), responseCode);
-            throw new ResponseException(responseCode, ResponseCode.FAILED.getDescription());
-        } else if (responseCode == ResponseCode.RATE_LIMIT.getCode()) {
-            circuitBreaker.recordErrorRequest();
-            completableFuture.complete(null);
-            log.error("-------->当前id为[{}]的请求被限流，响应码[{}]", rueRPCResponse.getRequestId(), responseCode);
-            throw new ResponseException(responseCode, ResponseCode.RATE_LIMIT.getDescription());
-        } else if (responseCode == ResponseCode.RESOURCE_NOT_FOUND.getCode()) {
-            circuitBreaker.recordErrorRequest();
-            completableFuture.complete(null);
-            log.error("-------->当前id为[{}]的请求，找不到资源，响应码[{}]", rueRPCResponse.getRequestId(), responseCode);
-            throw new ResponseException(responseCode, ResponseCode.RESOURCE_NOT_FOUND.getDescription());
-        } else if (responseCode == ResponseCode.SUCCESS_HEARTBEAT.getCode()) {
-            completableFuture.complete(null);
-            if (log.isDebugEnabled()) {
-                log.debug("------>已找到编号为【{}】的completableFuture，处理心跳检测", rueRPCResponse.getRequestId());
-            }
-        } else if (responseCode == ResponseCode.CLOSING.getCode()) {
-            circuitBreaker.recordErrorRequest();
-            completableFuture.complete(null);
-            if (log.isDebugEnabled()) {
-                log.debug("-------->当前id为[{}]的请求,访问被拒绝，目标服务器正在关闭，响应码[{}]",
-                        rueRPCResponse.getRequestId(), responseCode);
-            }
 
-            //修正负载均衡器，重新进行负载均衡
-            //将正在关闭的服务器从健康列表移除
-            RueRPCBootstrap.CHANNEL_CACHE.remove(socketAddress);
-            LoadBalancer loadBalancer = RueRPCBootstrap.getInstance().getConfiguration().getLoadBalancer();
-            RueRPCRequest rueRPCRequest = RueRPCBootstrap.REQUEST_THREAD_LOCAL.get();
+        switch (responseCode) {
+            case SUCCESS:
+                completableFuture.complete(rueRPCResponse.getBody());
+                log.debug("请求[{}]成功，准备处理响应结果", rueRPCResponse.getRequestId());
+                break;
 
-            loadBalancer.reLoadBalance(rueRPCRequest.getRequestPayload().getInterfaceName(),
-                    RueRPCBootstrap.CHANNEL_CACHE.keySet().stream().toList());
+            case SUCCESS_HEARTBEAT:
+                completableFuture.complete(null);
+                log.debug("心跳检测成功");
+                break;
 
-            throw new ResponseException(responseCode, ResponseCode.CLOSING.getDescription());
-        } else {
-            //服务提供方给予的结果
-            Object returnValue = rueRPCResponse.getBody();
-            completableFuture.complete(returnValue);
-            if (log.isDebugEnabled()) {
-                log.debug("-------->已找到编号为【{}】的completableFuture，处理响应结果", rueRPCResponse.getRequestId());
-            }
+            case RATE_LIMIT:
+            case RESOURCE_NOT_FOUND:
+            case FAILED:
+            case CLOSING:
+                handleErrorResponse(rueRPCResponse, completableFuture, circuitBreaker,socketAddress);
+                break;
+
+            default:
+                completableFuture.completeExceptionally(
+                        new ResponseException(rueRPCResponse.getResponseCode(), "未知响应码")
+                );
         }
     }
+
+    /**
+     * 处理成功和心跳检测以外的其他异常
+     *
+     * @param rueRPCResponse 响应
+     * @param completableFuture 待处理的completableFuture
+     * @param circuitBreaker 熔断器
+     * @param address 服务器地址
+     */
+    private void handleErrorResponse(RueRPCResponse rueRPCResponse,
+                                     CompletableFuture<Object> completableFuture,
+                                     CircuitBreaker circuitBreaker,
+                                     SocketAddress address) {
+        byte responseCode = rueRPCResponse.getResponseCode();
+        circuitBreaker.recordErrorRequest();
+
+        if (responseCode == ResponseCodeConstant.CLOSING) {
+            //将正在关闭的服务器从健康列表移除
+            RueRPCBootstrap.CHANNEL_CACHE.remove(address);
+
+            //拿到负载均衡器和接口方法，重新负载均衡
+            LoadBalancer loadBalancer = RueRPCBootstrap.getInstance().getConfiguration().getLoadBalancer();
+            RueRPCRequest rueRPCRequest = RueRPCBootstrap.REQUEST_THREAD_LOCAL.get();
+            loadBalancer.reLoadBalance(rueRPCRequest.getRequestPayload().getInterfaceName(),
+                    RueRPCBootstrap.CHANNEL_CACHE.keySet().stream().toList());
+        }
+
+        completableFuture.completeExceptionally(
+                new ResponseException(responseCode, ResponseCode.CLOSING.getDescription())
+        );
+        log.error("请求[{}]失败，代码: {}", rueRPCResponse.getRequestId(), responseCode);
+    }
+
 }
 

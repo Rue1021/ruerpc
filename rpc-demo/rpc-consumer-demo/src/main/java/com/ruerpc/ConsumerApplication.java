@@ -27,13 +27,19 @@ public class ConsumerApplication {
         //获取Hello接口服务的动态代理对象，后续对Hello的调用会被拦截并转为远程调用
         Hello dynamicProxy = reference.get();
 
-        while (true) {
+
             //测试
-            for (int i = 0; i < 50; i++) {
-                String sayHi = dynamicProxy.sayHi("ruerpc");
-                log.info("sayHi -> {}, port:{}", sayHi, RueRPCBootstrap.getInstance()
-                        .getConfiguration().getPort());
+            for (int i = 0; i < 2; i++) {
+                dynamicProxy.sayHi("ruerpc")
+                        .thenAccept(result -> System.out.println(result))
+                        .exceptionally(ex -> {
+                            log.error("调用失败", ex);
+                            return null;
+                        });
+//                String sayHi = dynamicProxy.sayHi("ruerpc");
+//                log.info("sayHi -> {}, port:{}", sayHi, RueRPCBootstrap.getInstance()
+//                        .getConfiguration().getPort());
             }
-        }
+
     }
 }

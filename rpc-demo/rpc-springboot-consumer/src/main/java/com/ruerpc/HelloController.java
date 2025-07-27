@@ -16,7 +16,8 @@ public class HelloController {
 
     @GetMapping("/hello")
     public String hello() {
-        return hello.sayHi(">>>>>>>>>provider<<<<<<<<<<<");
+        //return hello.sayHi(">>>>>>>>>provider<<<<<<<<<<<");
+        return null;
     }
 
 }
